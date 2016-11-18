@@ -1,0 +1,19 @@
+[
+  {
+    "ParameterKey": "NatImageId",
+    "ParameterValue": "ami-67a54423"
+  },
+  {
+    "ParameterKey": "NatKeyName",
+    "ParameterValue": "k8s"
+  },
+  {
+    "ParameterKey": "MainClusterDesiredScale",
+    "ParameterValue": "1"
+  },
+  {
+    "ParameterKey": "MainClusterSecretKey",
+    "ParameterValue": "k8s"
+  }
+
+]
