@@ -29,8 +29,7 @@ from stack.vpc import (
     loadbalancer_a_subnet_cidr,
     loadbalancer_b_subnet_cidr,
     container_a_subnet,
-    container_b_subnet,
-    nat_instance_keyname_param,
+    container_b_subnet
 )
 
 
@@ -103,11 +102,11 @@ deploy_condition = "Deploy"
 template.add_condition(deploy_condition, Not(Equals(app_revision, "")))
 
 
-secret_key = Ref(template.add_parameter(Parameter(
+secret_key = template.add_parameter(Parameter(
     "MainClusterSecretKey",
     Description="Application secret key",
     Type="String"
-)))
+))
 
 
 template.add_mapping("ECSRegionMap", {
@@ -222,6 +221,7 @@ autoscaling_group_name = "AutoScalingGroup"
 container_instance_configuration = autoscaling.LaunchConfiguration(
     container_instance_configuration_name,
     template=template,
+    KeyName=Ref(secret_key),
     Metadata=autoscaling.Metadata(
         cloudformation.Init(dict(
             config=cloudformation.InitConfig(

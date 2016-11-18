@@ -370,6 +370,9 @@
                 "InstanceType": {
                     "Ref": "ContainerInstanceType"
                 },
+                "KeyName": {
+                    "Ref": "MainClusterSecretKey"
+                },
                 "SecurityGroups": [
                     {
                         "Ref": "ContainerSecurityGroup"
