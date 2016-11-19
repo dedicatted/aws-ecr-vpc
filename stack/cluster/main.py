@@ -14,10 +14,12 @@ from troposphere import (
     Not,
     Parameter,
     Ref,
+    GetAtt,
 )
 from troposphere.ec2 import (
     SecurityGroup,
     SecurityGroupRule,
+    SecurityGroupIngress,
 )
 from troposphere.ecs import (
     Cluster,
@@ -29,7 +31,9 @@ from stack.vpc import (
     loadbalancer_a_subnet_cidr,
     loadbalancer_b_subnet_cidr,
     container_a_subnet,
-    container_b_subnet
+    container_b_subnet,
+    nat_instance_keyname_param,
+#    defaultsecuritygroup,
 )
 
 
@@ -102,11 +106,11 @@ deploy_condition = "Deploy"
 template.add_condition(deploy_condition, Not(Equals(app_revision, "")))
 
 
-secret_key = template.add_parameter(Parameter(
+secret_key = Ref(template.add_parameter(Parameter(
     "MainClusterSecretKey",
     Description="Application secret key",
     Type="String"
-))
+)))
 
 
 template.add_mapping("ECSRegionMap", {
@@ -120,6 +124,7 @@ template.add_mapping("ECSRegionMap", {
 # ECS cluster
 main_cluster = Cluster(
     "MainCluster",
+#    ClusterName="MainCluster",
     template=template,
 )
 
@@ -190,27 +195,26 @@ container_instance_profile = iam.InstanceProfile(
 
 
 container_security_group = SecurityGroup(
-    'ContainerSecurityGroup',
+    "ContainerSecurityGroup",
     template=template,
     GroupDescription="Container security group.",
     VpcId=Ref(vpc),
+)
+
+default_security_group = SecurityGroup(
+    "DefaultSecurityGroup",
+    template=template,
+    GroupDescription="Default security group.",
+    VpcId=Ref(vpc),
     SecurityGroupIngress=[
-        # HTTP from web public subnets
         SecurityGroupRule(
-            IpProtocol="tcp",
-            FromPort=web_worker_port,
-            ToPort=web_worker_port,
-            CidrIp=loadbalancer_a_subnet_cidr,
-        ),
-        SecurityGroupRule(
-            IpProtocol="tcp",
-            FromPort=web_worker_port,
-            ToPort=web_worker_port,
-            CidrIp=loadbalancer_b_subnet_cidr,
+            IpProtocol="-1",
+            FromPort="-1",
+            ToPort="-1",
+            CidrIp="0.0.0.0/0",
         ),
     ],
 )
-
 
 container_instance_configuration_name = "ContainerLaunchConfiguration"
 
@@ -221,7 +225,6 @@ autoscaling_group_name = "AutoScalingGroup"
 container_instance_configuration = autoscaling.LaunchConfiguration(
     container_instance_configuration_name,
     template=template,
-    KeyName=Ref(secret_key),
     Metadata=autoscaling.Metadata(
         cloudformation.Init(dict(
             config=cloudformation.InitConfig(
@@ -288,7 +291,7 @@ container_instance_configuration = autoscaling.LaunchConfiguration(
             )
         ))
     ),
-    SecurityGroups=[Ref(container_security_group)],
+    SecurityGroups=[Ref(container_security_group), Ref(default_security_group)],
     InstanceType=container_instance_type,
     ImageId=FindInMap("ECSRegionMap", Ref(AWS_REGION), "AMI"),
     IamInstanceProfile=Ref(container_instance_profile),
@@ -297,7 +300,7 @@ container_instance_configuration = autoscaling.LaunchConfiguration(
         "yum install -y aws-cfn-bootstrap\n",
 
         "/opt/aws/bin/cfn-init -v ",
-        "         --stack", Ref(AWS_STACK_NAME),
+        "         --stack ", Ref(AWS_STACK_NAME),
         "         --resource %s " % container_instance_configuration_name,
         "         --region ", Ref(AWS_REGION), "\n",
     ])),
