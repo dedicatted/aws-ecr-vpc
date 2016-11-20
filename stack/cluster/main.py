@@ -8,18 +8,18 @@ from troposphere import (
     cloudformation,
     Equals,
     FindInMap,
+    GetAtt,
     iam,
     Join,
     logs,
     Not,
     Parameter,
     Ref,
-    GetAtt,
+    Tags,
 )
 from troposphere.ec2 import (
     SecurityGroup,
     SecurityGroupRule,
-    SecurityGroupIngress,
 )
 from troposphere.ecs import (
     Cluster,
@@ -31,12 +31,7 @@ from stack.vpc import (
     loadbalancer_a_subnet_cidr,
     loadbalancer_b_subnet_cidr,
     container_a_subnet,
-    container_b_subnet,
-    nat_instance_keyname_param,
-<<<<<<< HEAD
-#    defaultsecuritygroup,
-=======
->>>>>>> parent of 953aab7... added different ami-id for us-west-1 region
+    container_b_subnet
 )
 
 
@@ -109,11 +104,11 @@ deploy_condition = "Deploy"
 template.add_condition(deploy_condition, Not(Equals(app_revision, "")))
 
 
-secret_key = Ref(template.add_parameter(Parameter(
+secret_key = template.add_parameter(Parameter(
     "MainClusterSecretKey",
     Description="Application secret key",
     Type="String"
-)))
+))
 
 
 template.add_mapping("ECSRegionMap", {
@@ -127,10 +122,9 @@ template.add_mapping("ECSRegionMap", {
 # ECS cluster
 main_cluster = Cluster(
     "MainCluster",
-#    ClusterName="MainCluster",
+    ClusterName="MainCluster",
     template=template,
 )
-
 
 # ECS container role
 container_instance_role = iam.Role(
@@ -198,36 +192,35 @@ container_instance_profile = iam.InstanceProfile(
 
 
 container_security_group = SecurityGroup(
-    "ContainerSecurityGroup",
+    'ContainerSecurityGroup',
     template=template,
     GroupDescription="Container security group.",
     VpcId=Ref(vpc),
-)
-
-default_security_group = SecurityGroup(
-    "DefaultSecurityGroup",
-    template=template,
-    GroupDescription="Default security group.",
-    VpcId=Ref(vpc),
     SecurityGroupIngress=[
+        # HTTP from web public subnets
         SecurityGroupRule(
-            IpProtocol="-1",
-            FromPort="-1",
-            ToPort="-1",
-            CidrIp="0.0.0.0/0",
+            IpProtocol="tcp",
+            FromPort=web_worker_port,
+            ToPort=web_worker_port,
+            CidrIp=loadbalancer_a_subnet_cidr,
+        ),
+        SecurityGroupRule(
+            IpProtocol="tcp",
+            FromPort=web_worker_port,
+            ToPort=web_worker_port,
+            CidrIp=loadbalancer_b_subnet_cidr,
         ),
     ],
 )
 
+
 container_instance_configuration_name = "ContainerLaunchConfiguration"
-
-
-autoscaling_group_name = "AutoScalingGroup"
 
 
 container_instance_configuration = autoscaling.LaunchConfiguration(
     container_instance_configuration_name,
     template=template,
+    KeyName=Ref(secret_key),
     Metadata=autoscaling.Metadata(
         cloudformation.Init(dict(
             config=cloudformation.InitConfig(
@@ -294,7 +287,7 @@ container_instance_configuration = autoscaling.LaunchConfiguration(
             )
         ))
     ),
-    SecurityGroups=[Ref(container_security_group), Ref(default_security_group)],
+    SecurityGroups=[Ref(container_security_group), GetAtt(vpc, "DefaultSecurityGroup")],
     InstanceType=container_instance_type,
     ImageId=FindInMap("ECSRegionMap", Ref(AWS_REGION), "AMI"),
     IamInstanceProfile=Ref(container_instance_profile),
@@ -306,12 +299,12 @@ container_instance_configuration = autoscaling.LaunchConfiguration(
         "         --stack ", Ref(AWS_STACK_NAME),
         "         --resource %s " % container_instance_configuration_name,
         "         --region ", Ref(AWS_REGION), "\n",
-    ])),
+    ]))
 )
 
 
 autoscaling_group = autoscaling.AutoScalingGroup(
-    autoscaling_group_name,
+    "ECSAutoScalingGroup",
     template=template,
     VPCZoneIdentifier=[Ref(container_a_subnet), Ref(container_b_subnet)],
     MinSize=desired_container_instances,
@@ -324,6 +317,7 @@ autoscaling_group = autoscaling.AutoScalingGroup(
     # instance will be flagged as `unhealthy` and won't stop respawning'
     HealthCheckType="EC2",
     HealthCheckGracePeriod=300,
+    Tags=[autoscaling.Tag("Name", "ecs-auto-scaling-group-instances", True)],
 )
 
 

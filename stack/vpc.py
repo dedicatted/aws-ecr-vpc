@@ -3,7 +3,16 @@ from troposphere import (
     Join,
     Parameter,
     Ref,
+    GetAtt,
+    Tags
 )
+
+from troposphere.ec2 import (
+    SecurityGroup,
+    SecurityGroupRule,
+    SecurityGroupIngress
+)
+
 from troposphere.ec2 import (
     EIP,
     Instance,
@@ -39,20 +48,34 @@ nat_instance_keyname_param = template.add_parameter(Parameter(
     Type="String",
 ))
 
-
 vpc = VPC(
     "Vpc",
     template=template,
     CidrBlock="10.0.0.0/16",
 )
 
+unsafe_security_group = SecurityGroup(
+    'UnsafeSecurityGroup',
+    template=template,
+    GroupDescription="Unsafe Security Group.",
+    VpcId=Ref(vpc),
+    SecurityGroupIngress=[
+        # ssh access from any source
+        SecurityGroupRule(
+            IpProtocol="tcp",
+            FromPort="22",
+            ToPort="22",
+            CidrIp="0.0.0.0/0",
+        )
+    ],
+    Tags=Tags(Name="unsafe_security_group")
+)
 
 # Allow outgoing to outside VPC
 internet_gateway = InternetGateway(
     "InternetGateway",
     template=template,
 )
-
 
 # Attach Gateway to VPC
 VPCGatewayAttachment(
@@ -62,14 +85,12 @@ VPCGatewayAttachment(
     InternetGatewayId=Ref(internet_gateway),
 )
 
-
 # Public route table
 public_route_table = RouteTable(
     "PublicRouteTable",
     template=template,
     VpcId=Ref(vpc),
 )
-
 
 public_route = Route(
     "PublicRoute",
@@ -78,7 +99,6 @@ public_route = Route(
     DestinationCidrBlock="0.0.0.0/0",
     RouteTableId=Ref(public_route_table),
 )
-
 
 # Holds public instances
 public_subnet_cidr = "10.0.1.0/24"
@@ -90,7 +110,6 @@ public_subnet = Subnet(
     CidrBlock=public_subnet_cidr,
 )
 
-
 SubnetRouteTableAssociation(
     "PublicSubnetRouteTableAssociation",
     template=template,
@@ -98,15 +117,15 @@ SubnetRouteTableAssociation(
     SubnetId=Ref(public_subnet),
 )
 
-
-
 nat_instance = template.add_resource(Instance(
     "Nat",
     SourceDestCheck="false",
     KeyName=Ref(nat_instance_keyname_param),
     SubnetId=Ref(public_subnet),
     ImageId=Ref(nat_image_id_param),
+    SecurityGroupIds=[Ref(unsafe_security_group), GetAtt(vpc, "DefaultSecurityGroup")],
     InstanceType=Ref(nat_instance_type_param),
+    Tags=Tags(Name="nat_instance")
 ))
 
 nat_eip = template.add_resource(EIP(
@@ -125,14 +144,12 @@ loadbalancer_a_subnet = Subnet(
     AvailabilityZone=Join("", [Ref(AWS_REGION), "a"]),
 )
 
-
 SubnetRouteTableAssociation(
     "LoadbalancerASubnetRouteTableAssociation",
     template=template,
     RouteTableId=Ref(public_route_table),
     SubnetId=Ref(loadbalancer_a_subnet),
 )
-
 
 loadbalancer_b_subnet_cidr = "10.0.3.0/24"
 loadbalancer_b_subnet = Subnet(
@@ -143,14 +160,12 @@ loadbalancer_b_subnet = Subnet(
     AvailabilityZone=Join("", [Ref(AWS_REGION), "b"]),
 )
 
-
 SubnetRouteTableAssociation(
     "LoadbalancerBSubnetRouteTableAssociation",
     template=template,
     RouteTableId=Ref(public_route_table),
     SubnetId=Ref(loadbalancer_b_subnet),
 )
-
 
 # Private route table
 private_route_table = RouteTable(
@@ -159,7 +174,6 @@ private_route_table = RouteTable(
     VpcId=Ref(vpc),
 )
 
-
 private_nat_route = Route(
     "PrivateNatRoute",
     template=template,
@@ -167,7 +181,6 @@ private_nat_route = Route(
     DestinationCidrBlock="0.0.0.0/0",
     InstanceId=Ref("Nat"),
 )
-
 
 # Holds containers instances
 container_a_subnet_cidr = "10.0.10.0/24"
@@ -179,14 +192,12 @@ container_a_subnet = Subnet(
     AvailabilityZone=Join("", [Ref(AWS_REGION), "a"]),
 )
 
-
 SubnetRouteTableAssociation(
     "ContainerARouteTableAssociation",
     template=template,
     SubnetId=Ref(container_a_subnet),
     RouteTableId=Ref(private_route_table),
 )
-
 
 container_b_subnet_cidr = "10.0.11.0/24"
 container_b_subnet = Subnet(
@@ -196,7 +207,6 @@ container_b_subnet = Subnet(
     CidrBlock=container_b_subnet_cidr,
     AvailabilityZone=Join("", [Ref(AWS_REGION), "b"]),
 )
-
 
 SubnetRouteTableAssociation(
     "ContainerBRouteTableAssociation",
