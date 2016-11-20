@@ -33,10 +33,10 @@ from troposphere.autoscaling import (
     AutoScalingGroup
 )
 
-container_instance_configuration_name = "MainContainerLaunchConfiguration"
+mongo_container_instance_configuration_name = "MongoMainContainerLaunchConfiguration"
 
-container_instance_configuration = LaunchConfiguration(
-    container_instance_configuration_name,
+mongo_container_instance_configuration = LaunchConfiguration(
+    mongo_container_instance_configuration_name,
     template=template,
     KeyName=Ref(secret_key),
     Metadata=Metadata(
@@ -76,13 +76,13 @@ container_instance_configuration = LaunchConfiguration(
                                 "[cfn-auto-reloader-hook]\n",
                                 "triggers=post.update\n",
                                 "path=Resources.%s."
-                                % container_instance_configuration_name,
+                                % mongo_container_instance_configuration_name,
                                 "Metadata.AWS::CloudFormation::Init\n",
                                 "action=/opt/aws/bin/cfn-init -v ",
                                 "         --stack",
                                 Ref(AWS_STACK_NAME),
                                 "         --resource %s"
-                                % container_instance_configuration_name,
+                                % mongo_container_instance_configuration_name,
                                 "         --region ",
                                 Ref("AWS::Region"),
                                 "\n",
@@ -115,24 +115,24 @@ container_instance_configuration = LaunchConfiguration(
 
         "/opt/aws/bin/cfn-init -v ",
         "         --stack ", Ref(AWS_STACK_NAME),
-        "         --resource %s " % container_instance_configuration_name,
+        "         --resource %s " % mongo_container_instance_configuration_name,
         "         --region ", Ref(AWS_REGION), "\n",
     ]))
 )
 
 AutoScalingGroup(
-    "ECSAutoScalingGroup",
+    "MongoECSAutoScalingGroup",
     template=template,
     VPCZoneIdentifier=[Ref(container_a_subnet), Ref(container_b_subnet)],
     MinSize=1,
     MaxSize=1,
     DesiredCapacity=1,
-    LaunchConfigurationName=Ref(container_instance_configuration),
+    LaunchConfigurationName=Ref(mongo_container_instance_configuration),
     # Since one instance within the group is a reserved slot
     # for rolling ECS service upgrade, it's not possible to rely
     # on a "dockerized" `ELB` health-check, else this reserved
     # instance will be flagged as `unhealthy` and won't stop respawning'
     HealthCheckType="EC2",
     HealthCheckGracePeriod=300,
-    Tags=[autoscaling.Tag("Name", "ecs-auto-scaling-group-instances", True)],
+    Tags=[autoscaling.Tag("Name", "mongo-ag-instance", True)],
 )

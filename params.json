@@ -8,10 +8,6 @@
     "ParameterValue": "k8s"
   },
   {
-    "ParameterKey": "MainClusterDesiredScale",
-    "ParameterValue": "1"
-  },
-  {
     "ParameterKey": "MainClusterSecretKey",
     "ParameterValue": "k8s"
   }
