@@ -31,14 +31,14 @@ from .template import template
 nat_instance_type_param = template.add_parameter(Parameter(
     "NatInstanceType",
     Description="NAT InstanceType",
-    Default="t1.micro",
+    Default="t2.micro",
     Type="String",
 ))
 
 nat_image_id_param = template.add_parameter(Parameter(
     "NatImageId",
     Description="NAT ImageId",
-    Default="ami-030f4133",
+    Default="ami-184dc970",
     Type="String",
 ))
 

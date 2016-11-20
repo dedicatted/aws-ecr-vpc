@@ -5,11 +5,11 @@
   },
   {
     "ParameterKey": "NatKeyName",
-    "ParameterValue": "k8s"
+    "ParameterValue": "k8s-gl"
   },
   {
     "ParameterKey": "MainClusterSecretKey",
-    "ParameterValue": "k8s"
+    "ParameterValue": "k8s-gl"
   }
 
 ]
