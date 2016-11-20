@@ -38,7 +38,7 @@ nat_instance_type_param = template.add_parameter(Parameter(
 nat_image_id_param = template.add_parameter(Parameter(
     "NatImageId",
     Description="NAT ImageId",
-    Default="ami-184dc970",
+    Default="ami-863b6391",
     Type="String",
 ))
 
