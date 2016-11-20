@@ -33,6 +33,7 @@ mongo_instance = Instance(
     InstanceType="t2.micro",
     UserData=Base64(Join('', [
         "#!/bin/bash -xe\n",
+        "sleep 30s\n",
         "touch /tmp/init.log\n",
         "yum update -y\n",
         "echo update-done >> /tmp/init.log\n",
@@ -45,7 +46,7 @@ mongo_instance = Instance(
         "docker run --name mongo -v /data:/data/db -d mongo --auth\n",
         "echo docker-mongo-started >> /tmp/init.log\n",
         "sleep 5s \n",
-        "docker exec -it mongo mongo admin --eval \"db.createUser({ user: 'jsmith', pwd: 'some-initial-password', roles: [ { role: 'userAdminAnyDatabase', db: 'admin' } ] });\"\n"
+        "docker exec mongo mongo admin --eval \"db.createUser({ user: 'jsmith', pwd: 'some-initial-password', roles: [ { role: 'userAdminAnyDatabase', db: 'admin' } ] });\"\n"
     ])),
     DependsOn="Nat",
     Tags=Tags(Name="mongo_db_instance")
