@@ -5,25 +5,21 @@ from troposphere import (
     Join,
     Ref,
 )
-from troposphere.ec2 import (
-    Instance,
-)
+from troposphere.ec2 import Instance
+from troposphere.policies import CreationPolicy, ResourceSignal
 
-from stack.cluster.infrastructure import (
-    secret_key
-)
-
+from stack.cluster.infrastructure import secret_key
 from stack.template import template
 
 from stack.vpc import (
     vpc,
-    nat_instance,
     unsafe_security_group,
     container_a_subnet
 )
 
+mongo_instance_name = "MongoDB"
 mongo_instance = Instance(
-    "MongoDB",
+    mongo_instance_name,
     template=template,
     SourceDestCheck="false",
     KeyName=Ref(secret_key),
@@ -46,10 +42,18 @@ mongo_instance = Instance(
         "docker run --name mongo -v /data:/data/db -d mongo --auth\n",
         "echo docker-mongo-started >> /tmp/init.log\n",
         "sleep 5s \n",
-        "docker exec mongo mongo admin --eval \"db.createUser({ user: 'jsmith', pwd: 'some-initial-password', roles: [ { role: 'userAdminAnyDatabase', db: 'admin' } ] });\"\n"
+        "docker exec mongo mongo admin --eval \"db.createUser({ user: 'jsmith', pwd: 'some-initial-password', roles: [ { role: 'userAdminAnyDatabase', db: 'admin' } ] });\"\n",
+        "/opt/aws/bin/cfn-signal -e $? ",
+        "         --stack ",
+        Ref('AWS::StackName'),
+        "         --resource %s " % mongo_instance_name,
+        '         --region ',
+        Ref('AWS::Region'),
+        '\n',
     ])),
     DependsOn="Nat",
+    CreationPolicy=CreationPolicy(
+        ResourceSignal=ResourceSignal(
+            Timeout='PT15M')),
     Tags=Tags(Name="mongo_db_instance")
 )
-
-
