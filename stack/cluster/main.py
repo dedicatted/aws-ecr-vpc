@@ -33,7 +33,10 @@ from stack.vpc import (
     container_a_subnet,
     container_b_subnet,
     nat_instance_keyname_param,
+<<<<<<< HEAD
 #    defaultsecuritygroup,
+=======
+>>>>>>> parent of 953aab7... added different ami-id for us-west-1 region
 )
 
 
