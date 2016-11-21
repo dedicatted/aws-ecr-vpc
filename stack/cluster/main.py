@@ -47,6 +47,10 @@ simple_app_task_definition = TaskDefinition(
             Memory="100",
             Essential=True,
             Image="httpd:2.4",
+            PortMappings=[PortMapping(
+                ContainerPort="80",
+                HostPort="8080"
+            )],
             MountPoints=[MountPoint(
                 ContainerPath="/usr/local/apache2/htdocs",
                 SourceVolume="my-vol"

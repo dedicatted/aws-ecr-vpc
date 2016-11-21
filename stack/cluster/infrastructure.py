@@ -321,11 +321,11 @@ load_balancer = elb.LoadBalancer(
     Listeners=[elb.Listener(
         LoadBalancerPort=80,
         InstanceProtocol='HTTP',
-        InstancePort=80,
+        InstancePort=8080,
         Protocol='HTTP'
     )],
     HealthCheck=elb.HealthCheck(
-        Target=Join("", ["HTTP:", 80, "/"]),
+        Target=Join("", ["HTTP:", 8080, "/"]),
         HealthyThreshold="2",
         UnhealthyThreshold="2",
         Interval="100",
