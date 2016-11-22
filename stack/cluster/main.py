@@ -30,48 +30,181 @@ from troposphere.ecs import (
     PortMapping,
     TaskDefinition,
     Service,
-    LoadBalancer
+    LoadBalancer,
+	HostEntry
 )
 
 from stack.template import template
 
-from stack.cluster.infrastructure import autoscaling_group_name, app_service_role
+from stack.cluster.infrastructure import autoscaling_group_name, app_service_role, repo_id
 
-simple_app_task_definition = TaskDefinition(
-    "SimpleApp",
+from stack.cluster.mongo import mongo_instance
+
+bigid_task_definition = TaskDefinition(
+    "bigid",
     template=template,
     ContainerDefinitions=[
         ContainerDefinition(
-            Name="simple-app",
-            Cpu="10",
-            Memory="100",
-            Essential=True,
-            Image="httpd:2.4",
+            Name="bigid-web",
+            Essential=False,
+            Image=Join("", [
+                Ref(repo_id),
+                "bigid-web",
+            ]),
             PortMappings=[PortMapping(
-                ContainerPort="80",
+                ContainerPort="3000",
+                HostPort="3000"
+            )],
+			Links=["bigid-orch"],
+			ExtraHosts=[HostEntry(
+				Hostname="bigid-mongo",
+				IpAddress=GetAtt(mongo_instance, "PrivateIp")
+			)],
+			Environment=[
+                Environment(
+                    Name="BIGID_MONGO_USER",
+                    Value="Value",
+                ),
+                Environment(
+                    Name="BIGID_MONGO_PWD",
+                    Value="Value",
+                ),
+			],
+        ),
+		ContainerDefinition(
+            Name="bigid-orch",
+            Essential=False,
+            Image=Join("", [
+                Ref(repo_id),
+                "bigid-orch",
+            ]),
+            PortMappings=[PortMapping(
+                ContainerPort="3001",
+                HostPort="3001"
+            )],
+			Links=["bigid-scanner"],
+			ExtraHosts=[HostEntry(
+				Hostname="bigid-mongo",
+				IpAddress=GetAtt(mongo_instance, "PrivateIp")
+			)],
+			Hostname="bigid-orch",
+			Environment=[
+                Environment(
+                    Name="BIGID_MONGO_USER",
+                    Value="Value",
+                ),
+                Environment(
+                    Name="BIGID_MONGO_PWD",
+                    Value="Value",
+                ),
+				Environment(
+                    Name="ORCHESTRATOR_URL_EXT",
+                    Value="Value",
+                ),
+                Environment(
+                    Name="BIGID_MONGO_HOST_EXT",
+                    Value="Value",
+                ),
+				Environment(
+                    Name="SAVE_SCANNED_IDENTITIES_AS_PII_FINDINGS",
+                    Value="Value",
+                ),
+                Environment(
+                    Name="SCANNED_VALUES_IGNORE_LIST",
+                    Value="Value",
+                ),
+			],
+        ),
+		ContainerDefinition(
+            Name="bigid-corr",
+            Essential=False,
+            Image=Join("", [
+                Ref(repo_id),
+                "bigid-corr",
+            ]),
+            PortMappings=[PortMapping(
+                ContainerPort="3002",
+                HostPort="3002"
+            )],
+			Links=["bigid-orch"],
+			ExtraHosts=[HostEntry(
+				Hostname="bigid-mongo",
+				IpAddress=GetAtt(mongo_instance, "PrivateIp")
+			)],
+			Hostname="bigid-corr",
+			Environment=[
+                Environment(
+                    Name="BIGID_MONGO_USER",
+                    Value="Value",
+                ),
+                Environment(
+                    Name="BIGID_MONGO_PWD",
+                    Value="Value",
+                ),
+			],
+        ),
+		ContainerDefinition(
+            Name="bigid-scanner",
+            Essential=False,
+			Privileged=True,
+            Image=Join("", [
+                Ref(repo_id),
+                "bigid-scanner",
+            ]),
+			ExtraHosts=[HostEntry(
+				Hostname="bigid-mongo",
+				IpAddress=GetAtt(mongo_instance, "PrivateIp")
+			)],
+            PortMappings=[
+				PortMapping(
+					ContainerPort="9999",
+					HostPort="9999"
+				),
+				PortMapping(
+					ContainerPort="2049",
+					HostPort="2049"
+				),
+				PortMapping(
+					ContainerPort="2049",
+					HostPort="2049",
+					Protocol="udp"
+				),
+				PortMapping(
+					ContainerPort="111",
+					HostPort="111",
+				),
+				PortMapping(
+					ContainerPort="111",
+					HostPort="111",
+					Protocol="udp"
+				),
+			],
+			Environment=[
+                Environment(
+                    Name="JAVA_OPTS",
+                    Value="-Xmx1024m",
+                ),
+			],
+        ),
+		ContainerDefinition(
+            Name="bigid-ui",
+            Essential=False,
+            Image=Join("", [
+                Ref(repo_id),
+                "bigid-ui",
+            ]),
+            PortMappings=[PortMapping(
+                ContainerPort="8080",
                 HostPort="8080"
             )],
-            MountPoints=[MountPoint(
-                ContainerPath="/usr/local/apache2/htdocs",
-                SourceVolume="my-vol"
-            )]
+			Environment=[
+                Environment(
+                    Name="BIG_ID_API_ENDPOINT",
+                    Value="Value",
+                ),
+			],
         ),
-        ContainerDefinition(
-            Name="busybox",
-            Cpu="10",
-            Memory="100",
-            Essential=False,
-            Image="busybox",
-            Command=[
-                "/bin/sh -c \"while true; do echo '<html> <head> <title>Amazon ECS Sample App</title> <style>body {margin-top: 40px; background-color: #333;} </style> </head><body> <div style=color:white;text-align:center> <h1>Amazon ECS Sample App</h1> <h2>Congratulations!</h2> <p>Your application is now running on a container in Amazon ECS.</p>' > top; /bin/date > date ; echo '</div></body></html>' > bottom; cat top date bottom > /usr/local/apache2/htdocs/index.html ; sleep 1; done\""
-            ],
-            VolumesFrom=[VolumesFrom(
-                SourceContainer="simple-app",
-            )]
-        )],
-    Volumes=[Volume(
-        Name="my-vol"
-    )]
+    ],
 )
 
 app_service = Service(
@@ -81,10 +214,11 @@ app_service = Service(
     DependsOn=[autoscaling_group_name],
     DesiredCount=1,
     LoadBalancers=[LoadBalancer(
-        ContainerName="simple-app",
-        ContainerPort=80,
+        ContainerName="bigid-ui",
+        ContainerPort=8080,
         LoadBalancerName=Ref(load_balancer),
     )],
-    TaskDefinition=Ref(simple_app_task_definition),
+    TaskDefinition=Ref(bigid_task_definition),
     Role=Ref(app_service_role),
 )
+
