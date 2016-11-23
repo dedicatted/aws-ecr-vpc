@@ -4,7 +4,8 @@ from troposphere import (
     Parameter,
     Ref,
     GetAtt,
-    Tags
+    Tags,
+	FindInMap
 )
 
 from troposphere.ec2 import (
@@ -35,12 +36,12 @@ nat_instance_type_param = template.add_parameter(Parameter(
     Type="String",
 ))
 
-nat_image_id_param = template.add_parameter(Parameter(
-    "NatImageId",
-    Description="NAT ImageId",
-    Default="ami-863b6391",
-    Type="String",
-))
+template.add_mapping("NATRegionMap", {
+    "eu-west-1": {"AMI": "ami-509dd623"},
+    "us-east-1": {"AMI": "ami-863b6391"},
+    "us-west-2": {"AMI": "ami-d0c066b0"},
+    "us-west-1": {"AMI": "ami-f4e8a394"},
+})
 
 nat_instance_keyname_param = template.add_parameter(Parameter(
     "NatKeyName",
@@ -122,7 +123,7 @@ nat_instance = template.add_resource(Instance(
     SourceDestCheck="false",
     KeyName=Ref(nat_instance_keyname_param),
     SubnetId=Ref(public_subnet),
-    ImageId=Ref(nat_image_id_param),
+    ImageId=FindInMap("NATRegionMap", Ref(AWS_REGION), "AMI"),
     SecurityGroupIds=[Ref(unsafe_security_group), GetAtt(vpc, "DefaultSecurityGroup")],
     InstanceType=Ref(nat_instance_type_param),
     Tags=Tags(Name="nat_instance")

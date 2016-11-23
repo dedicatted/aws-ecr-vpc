@@ -4,6 +4,8 @@ from troposphere import (
     Base64,
     Join,
     Ref,
+	FindInMap,
+	AWS_REGION
 )
 from troposphere.ec2 import Instance
 from troposphere.policies import CreationPolicy, ResourceSignal
@@ -17,6 +19,13 @@ from stack.vpc import (
     container_a_subnet
 )
 
+template.add_mapping("InstanceRegionMap", {
+    "eu-west-1": {"AMI": "ami-9398d3e0"},
+    "us-east-1": {"AMI": "ami-b73b63a0"},
+    "us-west-2": {"AMI": "ami-5ec1673e"},
+    "us-west-1": {"AMI": "ami-23e8a343"},
+})
+
 mongo_instance_name = "MongoDB"
 mongo_instance = Instance(
     mongo_instance_name,
@@ -24,7 +33,7 @@ mongo_instance = Instance(
     SourceDestCheck="false",
     KeyName=Ref(secret_key),
     SubnetId=Ref(container_a_subnet),
-    ImageId="ami-23e8a343",
+    ImageId=FindInMap("NATRegionMap", Ref(AWS_REGION), "AMI"),
     SecurityGroupIds=[Ref(unsafe_security_group), GetAtt(vpc, "DefaultSecurityGroup")],
     InstanceType="t2.micro",
     UserData=Base64(Join('', [

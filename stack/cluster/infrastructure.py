@@ -53,12 +53,11 @@ container_instance_type = Ref(template.add_parameter(Parameter(
     AllowedValues=["t2.micro", "t2.small", "t2.medium"]
 )))
 
-repo_id = Ref(template.add_parameter(Parameter(
+repo_id = template.add_parameter(Parameter(
     "RepositoryID",
     Description="Repository Address",
     Type="String",
-)))
-
+))
 
 secret_key = template.add_parameter(Parameter(
     "MainClusterSecretKey",

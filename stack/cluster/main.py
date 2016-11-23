@@ -41,15 +41,16 @@ from stack.cluster.infrastructure import autoscaling_group_name, app_service_rol
 from stack.cluster.mongo import mongo_instance
 
 bigid_task_definition = TaskDefinition(
-    "bigid",
+    "BigIdTask",
     template=template,
     ContainerDefinitions=[
         ContainerDefinition(
             Name="bigid-web",
+			Memory="100",
             Essential=False,
             Image=Join("", [
                 Ref(repo_id),
-                "bigid-web",
+                "/bigid-web",
             ]),
             PortMappings=[PortMapping(
                 ContainerPort="3000",
@@ -73,10 +74,11 @@ bigid_task_definition = TaskDefinition(
         ),
 		ContainerDefinition(
             Name="bigid-orch",
+			Memory="100",
             Essential=False,
             Image=Join("", [
                 Ref(repo_id),
-                "bigid-orch",
+                "/bigid-orch",
             ]),
             PortMappings=[PortMapping(
                 ContainerPort="3001",
@@ -117,10 +119,11 @@ bigid_task_definition = TaskDefinition(
         ),
 		ContainerDefinition(
             Name="bigid-corr",
+			Memory="100",
             Essential=False,
             Image=Join("", [
                 Ref(repo_id),
-                "bigid-corr",
+                "/bigid-corr",
             ]),
             PortMappings=[PortMapping(
                 ContainerPort="3002",
@@ -145,11 +148,12 @@ bigid_task_definition = TaskDefinition(
         ),
 		ContainerDefinition(
             Name="bigid-scanner",
+			Memory="100",
             Essential=False,
 			Privileged=True,
             Image=Join("", [
                 Ref(repo_id),
-                "bigid-scanner",
+                "/bigid-scanner",
             ]),
 			ExtraHosts=[HostEntry(
 				Hostname="bigid-mongo",
@@ -188,10 +192,11 @@ bigid_task_definition = TaskDefinition(
         ),
 		ContainerDefinition(
             Name="bigid-ui",
-            Essential=False,
+			Memory="100",
+            Essential=True,
             Image=Join("", [
                 Ref(repo_id),
-                "bigid-ui",
+                "/bigid-ui",
             ]),
             PortMappings=[PortMapping(
                 ContainerPort="8080",
