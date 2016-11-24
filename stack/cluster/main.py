@@ -145,7 +145,7 @@ bigid_task_definition = TaskDefinition(
                     Value=Ref(mongo_pass),
                 ),
 				Environment(
-                    Name="WEB_URL_EXT",
+                    Name="CORR_URL_EXT",
                     Value=Join("", ["http://", GetAtt(load_balancer, "DNSName"), ":3002"]),
                 ),
 			],

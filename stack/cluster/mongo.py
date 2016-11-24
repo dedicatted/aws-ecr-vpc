@@ -23,12 +23,14 @@ from stack.vpc import (
 mongo_user = template.add_parameter(Parameter(
     "MongoDBUser",
     Description="Enter MongoDB User",
+	Default="bigid",
     Type="String"
 ))
 
 mongo_pass = template.add_parameter(Parameter(
     "MongoDBPassword",
     Description="Enter MongoDB Password",
+	Default="bigid111",
     Type="String"
 ))
 
