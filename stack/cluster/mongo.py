@@ -5,7 +5,8 @@ from troposphere import (
     Join,
     Ref,
 	FindInMap,
-	AWS_REGION
+	AWS_REGION,
+	Parameter
 )
 from troposphere.ec2 import Instance
 from troposphere.policies import CreationPolicy, ResourceSignal
@@ -18,6 +19,18 @@ from stack.vpc import (
     unsafe_security_group,
     container_a_subnet
 )
+
+mongo_user = template.add_parameter(Parameter(
+    "MongoDBUser",
+    Description="Enter MongoDB User",
+    Type="String"
+))
+
+mongo_pass = template.add_parameter(Parameter(
+    "MongoDBPassword",
+    Description="Enter MongoDB Password",
+    Type="String"
+))
 
 template.add_mapping("InstanceRegionMap", {
     "eu-west-1": {"AMI": "ami-9398d3e0"},
@@ -48,10 +61,14 @@ mongo_instance = Instance(
         "service docker start\n",
         "echo docker-start-done >> /tmp/init.log\n",
         "mkdir -p /data\n",
-        "docker run --name mongo -v /data:/data/db -d mongo --auth\n",
+        "docker run --name mongo -v /data:/data/db -p 27017:27017 -d mongo --auth\n",
         "echo docker-mongo-started >> /tmp/init.log\n",
         "sleep 5s \n",
-        "docker exec mongo mongo admin --eval \"db.createUser({ user: 'jsmith', pwd: 'some-initial-password', roles: [ { role: 'userAdminAnyDatabase', db: 'admin' } ] });\"\n",
+		"docker exec mongo mongo admin --eval \"db.createUser({ user: '",
+		Ref(mongo_user), 
+		"', pwd: '",
+		Ref(mongo_pass), 
+		"', roles: [ { role: 'userAdminAnyDatabase', db: 'admin' } ] });\"\n",
         "/opt/aws/bin/cfn-signal -e $? ",
         "         --stack ",
         Ref('AWS::StackName'),

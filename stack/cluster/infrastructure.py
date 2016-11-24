@@ -72,6 +72,89 @@ template.add_mapping("ECSRegionMap", {
     "us-west-1": {"AMI": "ami-9fadf8ff"},
 })
 
+load_balancer_security_group = SecurityGroup(
+    "LoadBalancerSecurityGroup",
+    template=template,
+    GroupDescription="Web load balancer security group.",
+    VpcId=Ref(vpc),
+    SecurityGroupIngress=[
+        SecurityGroupRule(
+            IpProtocol="tcp",
+            FromPort="80",
+            ToPort="80",
+            CidrIp='0.0.0.0/0',
+        ),
+		SecurityGroupRule(
+            IpProtocol="tcp",
+            FromPort="3000",
+            ToPort="3000",
+            CidrIp='0.0.0.0/0',
+        ),
+		SecurityGroupRule(
+            IpProtocol="tcp",
+            FromPort="3001",
+            ToPort="3001",
+            CidrIp='0.0.0.0/0',
+        ),
+		SecurityGroupRule(
+            IpProtocol="tcp",
+            FromPort="3002",
+            ToPort="3002",
+            CidrIp='0.0.0.0/0',
+        ),
+    ],
+)
+
+load_balancer = elb.LoadBalancer(
+    'LoadBalancer',
+    template=template,
+    Subnets=[
+        Ref(loadbalancer_a_subnet),
+        Ref(loadbalancer_b_subnet),
+    ],
+    SecurityGroups=[Ref(load_balancer_security_group)],
+    Listeners=[
+		elb.Listener(
+        LoadBalancerPort=80,
+        InstanceProtocol='HTTP',
+        InstancePort=8080,
+        Protocol='HTTP'
+		),
+		elb.Listener(
+        LoadBalancerPort=3000,
+        InstanceProtocol='tcp',
+        InstancePort=3000,
+        Protocol='tcp'
+		),
+		elb.Listener(
+        LoadBalancerPort=3001,
+        InstanceProtocol='tcp',
+        InstancePort=3001,
+        Protocol='tcp'
+		),
+		elb.Listener(
+        LoadBalancerPort=3002,
+        InstanceProtocol='tcp',
+        InstancePort=3002,
+        Protocol='tcp'
+		),
+	],
+    HealthCheck=elb.HealthCheck(
+        Target=Join("", ["HTTP:", 8080, "/"]),
+        HealthyThreshold="2",
+        UnhealthyThreshold="2",
+        Interval="100",
+        Timeout="10",
+    ),
+    CrossZone=True,
+)
+
+template.add_output(Output(
+    "LoadBalancerDNSName",
+    Description="Loadbalancer DNS",
+    Value=GetAtt(load_balancer, "DNSName")
+))
+
 # ECS cluster
 main_cluster = Cluster(
     "MainCluster",
@@ -151,14 +234,53 @@ container_security_group = SecurityGroup(
         # HTTP from web public subnets
         SecurityGroupRule(
             IpProtocol="tcp",
-            FromPort=80,
-            ToPort=80,
+            FromPort=8080,
+            ToPort=8080,
             CidrIp=loadbalancer_a_subnet_cidr,
         ),
         SecurityGroupRule(
             IpProtocol="tcp",
-            FromPort=80,
-            ToPort=80,
+            FromPort=8080,
+            ToPort=8080,
+            CidrIp=loadbalancer_b_subnet_cidr,
+        ),
+		# For bigid-web Container
+		SecurityGroupRule(
+            IpProtocol="tcp",
+            FromPort=3000,
+            ToPort=3000,
+            CidrIp=loadbalancer_a_subnet_cidr,
+        ),
+        SecurityGroupRule(
+            IpProtocol="tcp",
+            FromPort=3000,
+            ToPort=3000,
+            CidrIp=loadbalancer_b_subnet_cidr,
+        ),
+		# For bigid-orch Container
+		SecurityGroupRule(
+            IpProtocol="tcp",
+            FromPort=3001,
+            ToPort=3001,
+            CidrIp=loadbalancer_a_subnet_cidr,
+        ),
+        SecurityGroupRule(
+            IpProtocol="tcp",
+            FromPort=3001,
+            ToPort=3001,
+            CidrIp=loadbalancer_b_subnet_cidr,
+        ),
+		# For bigid-orch Container
+		SecurityGroupRule(
+            IpProtocol="tcp",
+            FromPort=3002,
+            ToPort=3002,
+            CidrIp=loadbalancer_a_subnet_cidr,
+        ),
+        SecurityGroupRule(
+            IpProtocol="tcp",
+            FromPort=3002,
+            ToPort=3002,
             CidrIp=loadbalancer_b_subnet_cidr,
         ),
     ],
@@ -260,6 +382,7 @@ AutoScalingGroup(
     MaxSize=1,
     DesiredCapacity=1,
     LaunchConfigurationName=Ref(container_instance_configuration),
+	DependsOn=["LoadBalancer"],
     # Since one instance within the group is a reserved slot
     # for rolling ECS service upgrade, it's not possible to rely
     # on a "dockerized" `ELB` health-check, else this reserved
@@ -299,48 +422,3 @@ app_service_role = iam.Role(
         ),
     ]
 )
-
-load_balancer_security_group = SecurityGroup(
-    "LoadBalancerSecurityGroup",
-    template=template,
-    GroupDescription="Web load balancer security group.",
-    VpcId=Ref(vpc),
-    SecurityGroupIngress=[
-        SecurityGroupRule(
-            IpProtocol="tcp",
-            FromPort="80",
-            ToPort="80",
-            CidrIp='0.0.0.0/0',
-        ),
-    ],
-)
-
-load_balancer = elb.LoadBalancer(
-    'LoadBalancer',
-    template=template,
-    Subnets=[
-        Ref(loadbalancer_a_subnet),
-        Ref(loadbalancer_b_subnet),
-    ],
-    SecurityGroups=[Ref(load_balancer_security_group)],
-    Listeners=[elb.Listener(
-        LoadBalancerPort=80,
-        InstanceProtocol='HTTP',
-        InstancePort=8080,
-        Protocol='HTTP'
-    )],
-    HealthCheck=elb.HealthCheck(
-        Target=Join("", ["HTTP:", 8080, "/"]),
-        HealthyThreshold="2",
-        UnhealthyThreshold="2",
-        Interval="100",
-        Timeout="10",
-    ),
-    CrossZone=True,
-)
-
-template.add_output(Output(
-    "LoadBalancerDNSName",
-    Description="Loadbalancer DNS",
-    Value=GetAtt(load_balancer, "DNSName")
-))
