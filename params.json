@@ -1,15 +1,30 @@
 [
   {
-    "ParameterKey": "NatImageId",
-    "ParameterValue": "ami-004b0f60"
-  },
-  {
-    "ParameterKey": "NatKeyName",
-    "ParameterValue": "k8s"
-  },
-  {
     "ParameterKey": "MainClusterSecretKey",
-    "ParameterValue": "k8s"
+    "ParameterValue": "keysfortesting"
+  },
+  {
+    "ParameterKey": "RepositoryID",
+    "ParameterValue": "647177513724.dkr.ecr.us-west-2.amazonaws.com"
+  },
+  {
+    "ParameterKey": "MongoDBUser",
+    "ParameterValue": "bigid"
+  },
+  {
+    "ParameterKey": "MongoDBPassword",
+    "ParameterValue": "bigid111"
+  },
+  {
+    "ParameterKey": "VPCID",
+    "ParameterValue": "vpc-678d4100"
+  },
+  {
+    "ParameterKey": "PublicSubnet",
+    "ParameterValue": "subnet-f4686882"
+  },
+  {
+    "ParameterKey": "DefaultSecurityGroup",
+    "ParameterValue": "sg-783c1301"
   }
-
 ]

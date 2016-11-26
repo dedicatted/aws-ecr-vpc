@@ -15,7 +15,6 @@ from stack.cluster.infrastructure import (
     secret_key,
     main_cluster,
     container_instance_type,
-    container_security_group,
     container_instance_profile,
     load_balancer
 )
@@ -38,7 +37,7 @@ from stack.template import template
 
 from stack.cluster.infrastructure import autoscaling_group_name, app_service_role, repo_id
 
-from stack.cluster.mongo import mongo_instance
+from stack.cluster.mongo import mongo_instance, mongo_user, mongo_pass
 
 bigid_task_definition = TaskDefinition(
     "BigIdTask",
@@ -46,8 +45,8 @@ bigid_task_definition = TaskDefinition(
     ContainerDefinitions=[
         ContainerDefinition(
             Name="bigid-web",
-			Memory="100",
-            Essential=False,
+			Memory="200",
+            Essential=True,
             Image=Join("", [
                 Ref(repo_id),
                 "/bigid-web",
@@ -64,18 +63,22 @@ bigid_task_definition = TaskDefinition(
 			Environment=[
                 Environment(
                     Name="BIGID_MONGO_USER",
-                    Value="Value",
+                    Value=Ref(mongo_user),
                 ),
                 Environment(
                     Name="BIGID_MONGO_PWD",
-                    Value="Value",
+                    Value=Ref(mongo_pass),
+                ),
+				Environment(
+                    Name="WEB_URL_EXT",
+                    Value=Join("", ["http://", GetAtt(load_balancer, "DNSName"), ":3000"]),
                 ),
 			],
         ),
 		ContainerDefinition(
             Name="bigid-orch",
-			Memory="100",
-            Essential=False,
+			Memory="200",
+            Essential=True,
             Image=Join("", [
                 Ref(repo_id),
                 "/bigid-orch",
@@ -93,34 +96,30 @@ bigid_task_definition = TaskDefinition(
 			Environment=[
                 Environment(
                     Name="BIGID_MONGO_USER",
-                    Value="Value",
+                    Value=Ref(mongo_user),
                 ),
                 Environment(
                     Name="BIGID_MONGO_PWD",
-                    Value="Value",
+                    Value=Ref(mongo_pass),
                 ),
 				Environment(
                     Name="ORCHESTRATOR_URL_EXT",
-                    Value="Value",
+			        Value=Join("", ["http://", GetAtt(load_balancer, "DNSName"), ":3001"]),
                 ),
                 Environment(
                     Name="BIGID_MONGO_HOST_EXT",
-                    Value="Value",
+                    Value=GetAtt(mongo_instance, "PrivateIp"),
                 ),
 				Environment(
                     Name="SAVE_SCANNED_IDENTITIES_AS_PII_FINDINGS",
-                    Value="Value",
-                ),
-                Environment(
-                    Name="SCANNED_VALUES_IGNORE_LIST",
-                    Value="Value",
+                    Value="False",
                 ),
 			],
         ),
 		ContainerDefinition(
             Name="bigid-corr",
-			Memory="100",
-            Essential=False,
+			Memory="200",
+            Essential=True,
             Image=Join("", [
                 Ref(repo_id),
                 "/bigid-corr",
@@ -138,18 +137,22 @@ bigid_task_definition = TaskDefinition(
 			Environment=[
                 Environment(
                     Name="BIGID_MONGO_USER",
-                    Value="Value",
+                    Value=Ref(mongo_user),
                 ),
                 Environment(
                     Name="BIGID_MONGO_PWD",
-                    Value="Value",
+                    Value=Ref(mongo_pass),
+                ),
+				Environment(
+                    Name="CORR_URL_EXT",
+                    Value=Join("", ["http://", GetAtt(load_balancer, "DNSName"), ":3002"]),
                 ),
 			],
         ),
 		ContainerDefinition(
             Name="bigid-scanner",
-			Memory="100",
-            Essential=False,
+			Memory="200",
+            Essential=True,
 			Privileged=True,
             Image=Join("", [
                 Ref(repo_id),
@@ -192,7 +195,7 @@ bigid_task_definition = TaskDefinition(
         ),
 		ContainerDefinition(
             Name="bigid-ui",
-			Memory="100",
+			Memory="192",
             Essential=True,
             Image=Join("", [
                 Ref(repo_id),
@@ -202,12 +205,6 @@ bigid_task_definition = TaskDefinition(
                 ContainerPort="8080",
                 HostPort="8080"
             )],
-			Environment=[
-                Environment(
-                    Name="BIG_ID_API_ENDPOINT",
-                    Value="Value",
-                ),
-			],
         ),
     ],
 )
@@ -226,4 +223,3 @@ app_service = Service(
     TaskDefinition=Ref(bigid_task_definition),
     Role=Ref(app_service_role),
 )
-
