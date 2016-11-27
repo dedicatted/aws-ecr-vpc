@@ -8,29 +8,27 @@ from troposphere import (
 	AWS_REGION,
 	Parameter
 )
-from troposphere.ec2 import Instance
+from troposphere.ec2 import Instance, NetworkInterfaceProperty
 from troposphere.policies import CreationPolicy, ResourceSignal
 
 from stack.cluster.infrastructure import secret_key
 from stack.template import template
 
 from stack.vpc import (
-    vpc,
-    unsafe_security_group,
-    container_a_subnet
+    vpc_id,
+    default_security_group,
+    public_subnet
 )
 
 mongo_user = template.add_parameter(Parameter(
     "MongoDBUser",
     Description="Enter MongoDB User",
-	Default="bigid",
     Type="String"
 ))
 
 mongo_pass = template.add_parameter(Parameter(
     "MongoDBPassword",
     Description="Enter MongoDB Password",
-	Default="bigid111",
     Type="String"
 ))
 
@@ -47,9 +45,15 @@ mongo_instance = Instance(
     template=template,
     SourceDestCheck="false",
     KeyName=Ref(secret_key),
-    SubnetId=Ref(container_a_subnet),
-    ImageId=FindInMap("NATRegionMap", Ref(AWS_REGION), "AMI"),
-    SecurityGroupIds=[Ref(unsafe_security_group), GetAtt(vpc, "DefaultSecurityGroup")],
+	NetworkInterfaces=[
+		NetworkInterfaceProperty(
+			AssociatePublicIpAddress=True,
+			SubnetId=Ref(public_subnet),
+			DeviceIndex="0",
+			GroupSet=[Ref(default_security_group)],
+	)],
+    ImageId=FindInMap("InstanceRegionMap", Ref(AWS_REGION), "AMI"),
+#    SecurityGroupIds=[Ref(default_security_group)],
     InstanceType="t2.micro",
     UserData=Base64(Join('', [
         "#!/bin/bash -xe\n",
@@ -79,7 +83,6 @@ mongo_instance = Instance(
         Ref('AWS::Region'),
         '\n',
     ])),
-    DependsOn="Nat",
     CreationPolicy=CreationPolicy(
         ResourceSignal=ResourceSignal(
             Timeout='PT15M')),

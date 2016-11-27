@@ -32,17 +32,11 @@ from troposphere.autoscaling import (
     AutoScalingGroup
 )
 
-
 from stack.template import template
 from stack.vpc import (
-    vpc,
-    loadbalancer_a_subnet_cidr,
-    loadbalancer_b_subnet_cidr,
-    loadbalancer_a_subnet,
-    loadbalancer_b_subnet,
-    container_a_subnet,
-    container_b_subnet,
-    unsafe_security_group
+    vpc_id,
+	public_subnet,
+    default_security_group
 )
 
 container_instance_type = Ref(template.add_parameter(Parameter(
@@ -76,7 +70,7 @@ load_balancer_security_group = SecurityGroup(
     "LoadBalancerSecurityGroup",
     template=template,
     GroupDescription="Web load balancer security group.",
-    VpcId=Ref(vpc),
+    VpcId=Ref(vpc_id),
     SecurityGroupIngress=[
         SecurityGroupRule(
             IpProtocol="tcp",
@@ -109,10 +103,9 @@ load_balancer = elb.LoadBalancer(
     'LoadBalancer',
     template=template,
     Subnets=[
-        Ref(loadbalancer_a_subnet),
-        Ref(loadbalancer_b_subnet),
+        Ref(public_subnet),
     ],
-    SecurityGroups=[Ref(load_balancer_security_group)],
+    SecurityGroups=[Ref(default_security_group), Ref(load_balancer_security_group)],
     Listeners=[
 		elb.Listener(
         LoadBalancerPort=80,
@@ -146,7 +139,7 @@ load_balancer = elb.LoadBalancer(
         Interval="100",
         Timeout="10",
     ),
-    CrossZone=True,
+#    CrossZone=True,
 )
 
 template.add_output(Output(
@@ -225,67 +218,6 @@ container_instance_profile = iam.InstanceProfile(
     Roles=[Ref(container_instance_role)],
 )
 
-container_security_group = SecurityGroup(
-    'ContainerSecurityGroup',
-    template=template,
-    GroupDescription="Container security group.",
-    VpcId=Ref(vpc),
-    SecurityGroupIngress=[
-        # HTTP from web public subnets
-        SecurityGroupRule(
-            IpProtocol="tcp",
-            FromPort=8080,
-            ToPort=8080,
-            CidrIp=loadbalancer_a_subnet_cidr,
-        ),
-        SecurityGroupRule(
-            IpProtocol="tcp",
-            FromPort=8080,
-            ToPort=8080,
-            CidrIp=loadbalancer_b_subnet_cidr,
-        ),
-		# For bigid-web Container
-		SecurityGroupRule(
-            IpProtocol="tcp",
-            FromPort=3000,
-            ToPort=3000,
-            CidrIp=loadbalancer_a_subnet_cidr,
-        ),
-        SecurityGroupRule(
-            IpProtocol="tcp",
-            FromPort=3000,
-            ToPort=3000,
-            CidrIp=loadbalancer_b_subnet_cidr,
-        ),
-		# For bigid-orch Container
-		SecurityGroupRule(
-            IpProtocol="tcp",
-            FromPort=3001,
-            ToPort=3001,
-            CidrIp=loadbalancer_a_subnet_cidr,
-        ),
-        SecurityGroupRule(
-            IpProtocol="tcp",
-            FromPort=3001,
-            ToPort=3001,
-            CidrIp=loadbalancer_b_subnet_cidr,
-        ),
-		# For bigid-orch Container
-		SecurityGroupRule(
-            IpProtocol="tcp",
-            FromPort=3002,
-            ToPort=3002,
-            CidrIp=loadbalancer_a_subnet_cidr,
-        ),
-        SecurityGroupRule(
-            IpProtocol="tcp",
-            FromPort=3002,
-            ToPort=3002,
-            CidrIp=loadbalancer_b_subnet_cidr,
-        ),
-    ],
-)
-
 container_instance_configuration_name = "MainContainerLaunchConfiguration"
 
 container_instance_configuration = LaunchConfiguration(
@@ -358,7 +290,8 @@ container_instance_configuration = LaunchConfiguration(
             )
         ))
     ),
-    SecurityGroups=[Ref(container_security_group), GetAtt(vpc, "DefaultSecurityGroup"), Ref(unsafe_security_group)],
+    SecurityGroups=[Ref(default_security_group)],
+	AssociatePublicIpAddress=True,
     InstanceType=container_instance_type,
     ImageId=FindInMap("ECSRegionMap", Ref(AWS_REGION), "AMI"),
     IamInstanceProfile=Ref(container_instance_profile),
@@ -377,7 +310,7 @@ autoscaling_group_name = "ECSAutoScalingGroup"
 AutoScalingGroup(
     autoscaling_group_name,
     template=template,
-    VPCZoneIdentifier=[Ref(container_a_subnet), Ref(container_b_subnet)],
+    VPCZoneIdentifier=[Ref(public_subnet)],
     MinSize=1,
     MaxSize=1,
     DesiredCapacity=1,

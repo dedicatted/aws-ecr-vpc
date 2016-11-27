@@ -15,7 +15,6 @@ from stack.cluster.infrastructure import (
     secret_key,
     main_cluster,
     container_instance_type,
-    container_security_group,
     container_instance_profile,
     load_balancer
 )
@@ -46,8 +45,8 @@ bigid_task_definition = TaskDefinition(
     ContainerDefinitions=[
         ContainerDefinition(
             Name="bigid-web",
-			Memory="100",
-            Essential=False,
+			Memory="200",
+            Essential=True,
             Image=Join("", [
                 Ref(repo_id),
                 "/bigid-web",
@@ -78,8 +77,8 @@ bigid_task_definition = TaskDefinition(
         ),
 		ContainerDefinition(
             Name="bigid-orch",
-			Memory="100",
-            Essential=False,
+			Memory="200",
+            Essential=True,
             Image=Join("", [
                 Ref(repo_id),
                 "/bigid-orch",
@@ -105,7 +104,7 @@ bigid_task_definition = TaskDefinition(
                 ),
 				Environment(
                     Name="ORCHESTRATOR_URL_EXT",
-                    Value=Join("", ["http://", GetAtt(load_balancer, "DNSName"), ":3001"]),
+			        Value=Join("", ["http://", GetAtt(load_balancer, "DNSName"), ":3001"]),
                 ),
                 Environment(
                     Name="BIGID_MONGO_HOST_EXT",
@@ -119,8 +118,8 @@ bigid_task_definition = TaskDefinition(
         ),
 		ContainerDefinition(
             Name="bigid-corr",
-			Memory="100",
-            Essential=False,
+			Memory="200",
+            Essential=True,
             Image=Join("", [
                 Ref(repo_id),
                 "/bigid-corr",
@@ -152,8 +151,8 @@ bigid_task_definition = TaskDefinition(
         ),
 		ContainerDefinition(
             Name="bigid-scanner",
-			Memory="100",
-            Essential=False,
+			Memory="200",
+            Essential=True,
 			Privileged=True,
             Image=Join("", [
                 Ref(repo_id),
@@ -196,7 +195,7 @@ bigid_task_definition = TaskDefinition(
         ),
 		ContainerDefinition(
             Name="bigid-ui",
-			Memory="100",
+			Memory="192",
             Essential=True,
             Image=Join("", [
                 Ref(repo_id),
