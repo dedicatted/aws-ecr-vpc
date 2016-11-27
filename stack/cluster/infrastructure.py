@@ -66,13 +66,46 @@ template.add_mapping("ECSRegionMap", {
     "us-west-1": {"AMI": "ami-9fadf8ff"},
 })
 
+load_balancer_security_group = SecurityGroup(
+    "LoadBalancerSecurityGroup",
+    template=template,
+    GroupDescription="Web load balancer security group.",
+    VpcId=Ref(vpc_id),
+    SecurityGroupIngress=[
+        SecurityGroupRule(
+            IpProtocol="tcp",
+            FromPort="80",
+            ToPort="80",
+            CidrIp='0.0.0.0/0',
+        ),
+		SecurityGroupRule(
+            IpProtocol="tcp",
+            FromPort="3000",
+            ToPort="3000",
+            CidrIp='0.0.0.0/0',
+        ),
+		SecurityGroupRule(
+            IpProtocol="tcp",
+            FromPort="3001",
+            ToPort="3001",
+            CidrIp='0.0.0.0/0',
+        ),
+		SecurityGroupRule(
+            IpProtocol="tcp",
+            FromPort="3002",
+            ToPort="3002",
+            CidrIp='0.0.0.0/0',
+        ),
+    ],
+)
+
 load_balancer = elb.LoadBalancer(
     'LoadBalancer',
     template=template,
     Subnets=[
         Ref(public_subnet),
     ],
-    SecurityGroups=[Ref(default_security_group)],
+    SecurityGroups=[Ref(default_security_group), Ref(load_balancer_security_group)],
     Listeners=[
 		elb.Listener(
         LoadBalancerPort=80,
