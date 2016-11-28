@@ -74,7 +74,7 @@ mongo_instance = Instance(
 		Ref(mongo_user), 
 		"', pwd: '",
 		Ref(mongo_pass), 
-		"', roles: [ { role: 'userAdminAnyDatabase', db: 'admin' } ] });\"\n",
+		"', roles: [ { role: 'userAdminAnyDatabase', db: 'admin' }, { role: 'dbAdminAnyDatabase', db: 'admin' }, { role: 'readWriteAnyDatabase', db: 'admin' } ] });\"\n",
         "/opt/aws/bin/cfn-signal -e $? ",
         "         --stack ",
         Ref('AWS::StackName'),
