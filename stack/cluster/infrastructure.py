@@ -145,7 +145,7 @@ load_balancer = elb.LoadBalancer(
 template.add_output(Output(
     "LoadBalancerDNSName",
     Description="Loadbalancer DNS",
-    Value=GetAtt(load_balancer, "DNSName")
+    Value=Join("", ["http://", GetAtt(load_balancer, "DNSName")]),
 ))
 
 # ECS cluster

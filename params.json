@@ -1,7 +1,11 @@
 [
   {
+    "ParameterKey": "ContainerInstanceType",
+    "ParameterValue": "t2.micro"
+  },
+  {
     "ParameterKey": "MainClusterSecretKey",
-    "ParameterValue": "keysfortesting"
+    "ParameterValue": "id_rsa"
   },
   {
     "ParameterKey": "RepositoryID",
@@ -17,14 +21,14 @@
   },
   {
     "ParameterKey": "VPCID",
-    "ParameterValue": "vpc-678d4100"
+    "ParameterValue": "vpc-9f18d6f8"
   },
   {
     "ParameterKey": "PublicSubnet",
-    "ParameterValue": "subnet-f4686882"
+    "ParameterValue": "subnet-b534dcd2"
   },
   {
     "ParameterKey": "DefaultSecurityGroup",
-    "ParameterValue": "sg-783c1301"
+    "ParameterValue": "sg-bb9eabc2"
   }
 ]
