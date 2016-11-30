@@ -60,6 +60,7 @@ secret_key = template.add_parameter(Parameter(
 ))
 
 template.add_mapping("ECSRegionMap", {
+    "eu-central-1": {"AMI": "ami-54f5303b"},
     "eu-west-1": {"AMI": "ami-4e6ffe3d"},
     "us-east-1": {"AMI": "ami-8f7687e2"},
     "us-west-2": {"AMI": "ami-84b44de4"},
@@ -145,7 +146,7 @@ load_balancer = elb.LoadBalancer(
 template.add_output(Output(
     "LoadBalancerDNSName",
     Description="Loadbalancer DNS",
-    Value=GetAtt(load_balancer, "DNSName")
+    Value=Join("", ["http://", GetAtt(load_balancer, "DNSName")])
 ))
 
 # ECS cluster

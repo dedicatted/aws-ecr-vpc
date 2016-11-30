@@ -33,6 +33,7 @@ mongo_pass = template.add_parameter(Parameter(
 ))
 
 template.add_mapping("InstanceRegionMap", {
+    "eu-central-1": {"AMI": "ami-f9619996"},
     "eu-west-1": {"AMI": "ami-9398d3e0"},
     "us-east-1": {"AMI": "ami-b73b63a0"},
     "us-west-2": {"AMI": "ami-5ec1673e"},

@@ -1,7 +1,11 @@
 [
   {
     "ParameterKey": "MainClusterSecretKey",
-    "ParameterValue": "keysfortesting"
+    "ParameterValue": "Andriy_keypair"
+  },
+  {
+    "ParameterKey": "ContainerInstanceType",
+    "ParameterValue": "t2.micro"
   },
   {
     "ParameterKey": "RepositoryID",
@@ -17,14 +21,14 @@
   },
   {
     "ParameterKey": "VPCID",
-    "ParameterValue": "vpc-678d4100"
+    "ParameterValue": "vpc-33d72d5b"
   },
   {
     "ParameterKey": "PublicSubnet",
-    "ParameterValue": "subnet-f4686882"
+    "ParameterValue": "subnet-6207be0a"
   },
   {
     "ParameterKey": "DefaultSecurityGroup",
-    "ParameterValue": "sg-783c1301"
+    "ParameterValue": "sg-b67f25de"
   }
 ]
