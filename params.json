@@ -30,5 +30,5 @@
   {
     "ParameterKey": "DefaultSecurityGroup",
     "ParameterValue": "sg-b67f25de"
-  }
+  },
 ]
