@@ -12,13 +12,15 @@ from troposphere import (
 from troposphere.ec2 import Instance, NetworkInterfaceProperty
 from troposphere.policies import CreationPolicy, ResourceSignal
 
-from stack.cluster.infrastructure import secret_key, instance_security_group
+from stack.cluster.infrastructure import instance_security_group
 from stack.template import template
 
 from stack.vpc import (
     vpc_id,
     default_security_group,
-    public_subnet
+    public_subnet,
+	instance_type,
+	secret_key
 )
 
 mongo_user = "bigid"
@@ -48,7 +50,7 @@ mongo_instance = Instance(
 	)],
     ImageId=FindInMap("InstanceRegionMap", Ref(AWS_REGION), "AMI"),
 #    SecurityGroupIds=[Ref(default_security_group)],
-    InstanceType="t2.micro",
+    InstanceType=instance_type,
     UserData=Base64(Join('', [
         "#!/bin/bash -xe\n",
         "sleep 30s\n",

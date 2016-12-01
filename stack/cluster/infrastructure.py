@@ -36,24 +36,14 @@ from stack.template import template
 from stack.vpc import (
     vpc_id,
 	public_subnet,
-    default_security_group
+    default_security_group,
+	instance_type,
+	secret_key
 )
 
-container_instance_type = Ref(template.add_parameter(Parameter(
-    "ContainerInstanceType",
-    Description="The container instance type",
-    Type="String",
-    Default="t2.micro",
-    AllowedValues=["t2.micro", "t2.small", "t2.medium"]
-)))
+
 
 repo_id = "424632819416.dkr.ecr.us-west-2.amazonaws.com"
-
-secret_key = template.add_parameter(Parameter(
-    "KeyPair",
-    Description="Key Pair",
-    Type="AWS::EC2::KeyPair::KeyName"
-))
 
 template.add_mapping("ECSRegionMap", {
     "eu-central-1": {"AMI": "ami-54f5303b"},
@@ -271,7 +261,7 @@ container_instance_configuration = LaunchConfiguration(
     ),
     SecurityGroups=[Ref(default_security_group), Ref(instance_security_group)],
 	AssociatePublicIpAddress=True,
-    InstanceType=container_instance_type,
+    InstanceType=instance_type,
     ImageId=FindInMap("ECSRegionMap", Ref(AWS_REGION), "AMI"),
     IamInstanceProfile=Ref(container_instance_profile),
     UserData=Base64(Join('', [

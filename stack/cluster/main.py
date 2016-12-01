@@ -12,11 +12,17 @@ from troposphere import (
 )
 
 from stack.cluster.infrastructure import (
-    secret_key,
     main_cluster,
-    container_instance_type,
     container_instance_profile,
-    load_balancer
+    load_balancer,
+	autoscaling_group_name,
+	app_service_role, 
+	repo_id
+)
+
+from stack.vpc import (
+	instance_type,
+	secret_key
 )
 
 from troposphere.ecs import (
@@ -34,8 +40,6 @@ from troposphere.ecs import (
 )
 
 from stack.template import template
-
-from stack.cluster.infrastructure import autoscaling_group_name, app_service_role, repo_id
 
 from stack.cluster.mongo import mongo_instance, mongo_user, mongo_pass
 
