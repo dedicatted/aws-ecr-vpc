@@ -1,23 +1,11 @@
 [
   {
-    "ParameterKey": "MainClusterSecretKey",
+    "ParameterKey": "KeyPair",
     "ParameterValue": "Andriy_keypair"
   },
   {
     "ParameterKey": "ContainerInstanceType",
     "ParameterValue": "t2.micro"
-  },
-  {
-    "ParameterKey": "RepositoryID",
-    "ParameterValue": "424632819416.dkr.ecr.us-west-2.amazonaws.com"
-  },
-  {
-    "ParameterKey": "MongoDBUser",
-    "ParameterValue": "bigid"
-  },
-  {
-    "ParameterKey": "MongoDBPassword",
-    "ParameterValue": "bigid111"
   },
   {
     "ParameterKey": "VPCID",
@@ -30,5 +18,5 @@
   {
     "ParameterKey": "DefaultSecurityGroup",
     "ParameterValue": "sg-b67f25de"
-  },
+  }
 ]

@@ -6,12 +6,13 @@ from troposphere import (
     Ref,
 	FindInMap,
 	AWS_REGION,
-	Parameter
+	Parameter,
+	Output
 )
 from troposphere.ec2 import Instance, NetworkInterfaceProperty
 from troposphere.policies import CreationPolicy, ResourceSignal
 
-from stack.cluster.infrastructure import secret_key
+from stack.cluster.infrastructure import secret_key, instance_security_group
 from stack.template import template
 
 from stack.vpc import (
@@ -20,17 +21,9 @@ from stack.vpc import (
     public_subnet
 )
 
-mongo_user = template.add_parameter(Parameter(
-    "MongoDBUser",
-    Description="Enter MongoDB User",
-    Type="String"
-))
+mongo_user = "bigid"
 
-mongo_pass = template.add_parameter(Parameter(
-    "MongoDBPassword",
-    Description="Enter MongoDB Password",
-    Type="String"
-))
+mongo_pass = "bigid111"
 
 template.add_mapping("InstanceRegionMap", {
     "eu-central-1": {"AMI": "ami-f9619996"},
@@ -51,7 +44,7 @@ mongo_instance = Instance(
 			AssociatePublicIpAddress=True,
 			SubnetId=Ref(public_subnet),
 			DeviceIndex="0",
-			GroupSet=[Ref(default_security_group)],
+			GroupSet=[Ref(default_security_group), Ref(instance_security_group)],
 	)],
     ImageId=FindInMap("InstanceRegionMap", Ref(AWS_REGION), "AMI"),
 #    SecurityGroupIds=[Ref(default_security_group)],
@@ -72,9 +65,9 @@ mongo_instance = Instance(
         "echo docker-mongo-started >> /tmp/init.log\n",
         "sleep 5s \n",
 		"docker exec mongo mongo admin --eval \"db.createUser({ user: '",
-		Ref(mongo_user), 
+		mongo_user, 
 		"', pwd: '",
-		Ref(mongo_pass), 
+		mongo_pass, 
 		"', roles: [ { role: 'userAdminAnyDatabase', db: 'admin' }, { role: 'dbAdminAnyDatabase', db: 'admin' }, { role: 'readWriteAnyDatabase', db: 'admin' } ] });\"\n",
         "/opt/aws/bin/cfn-signal -e $? ",
         "         --stack ",
@@ -89,3 +82,15 @@ mongo_instance = Instance(
             Timeout='PT15M')),
     Tags=Tags(Name="mongo_db_instance")
 )
+
+template.add_output(Output(
+    "Login",
+    Description="BigId Login",
+    Value=mongo_user
+))
+
+template.add_output(Output(
+    "Password",
+    Description="BigId Password",
+    Value=mongo_pass
+))

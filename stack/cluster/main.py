@@ -48,7 +48,7 @@ bigid_task_definition = TaskDefinition(
 			Memory="200",
             Essential=True,
             Image=Join("", [
-                Ref(repo_id),
+                repo_id,
                 "/bigid-web",
             ]),
             PortMappings=[PortMapping(
@@ -63,11 +63,11 @@ bigid_task_definition = TaskDefinition(
 			Environment=[
                 Environment(
                     Name="BIGID_MONGO_USER",
-                    Value=Ref(mongo_user),
+                    Value=mongo_user,
                 ),
                 Environment(
                     Name="BIGID_MONGO_PWD",
-                    Value=Ref(mongo_pass),
+                    Value=mongo_pass,
                 ),
 				Environment(
                     Name="WEB_URL_EXT",
@@ -80,7 +80,7 @@ bigid_task_definition = TaskDefinition(
 			Memory="200",
             Essential=True,
             Image=Join("", [
-                Ref(repo_id),
+                repo_id,
                 "/bigid-orch",
             ]),
             PortMappings=[PortMapping(
@@ -96,11 +96,11 @@ bigid_task_definition = TaskDefinition(
 			Environment=[
                 Environment(
                     Name="BIGID_MONGO_USER",
-                    Value=Ref(mongo_user),
+                    Value=mongo_user,
                 ),
                 Environment(
                     Name="BIGID_MONGO_PWD",
-                    Value=Ref(mongo_pass),
+                    Value=mongo_pass,
                 ),
 				Environment(
                     Name="ORCHESTRATOR_URL_EXT",
@@ -121,7 +121,7 @@ bigid_task_definition = TaskDefinition(
 			Memory="200",
             Essential=True,
             Image=Join("", [
-                Ref(repo_id),
+                repo_id,
                 "/bigid-corr",
             ]),
             PortMappings=[PortMapping(
@@ -137,11 +137,11 @@ bigid_task_definition = TaskDefinition(
 			Environment=[
                 Environment(
                     Name="BIGID_MONGO_USER",
-                    Value=Ref(mongo_user),
+                    Value=mongo_user,
                 ),
                 Environment(
                     Name="BIGID_MONGO_PWD",
-                    Value=Ref(mongo_pass),
+                    Value=mongo_pass,
                 ),
 				Environment(
                     Name="CORR_URL_EXT",
@@ -155,7 +155,7 @@ bigid_task_definition = TaskDefinition(
             Essential=True,
 			Privileged=True,
             Image=Join("", [
-                Ref(repo_id),
+                repo_id,
                 "/bigid-scanner",
             ]),
 			ExtraHosts=[HostEntry(
@@ -198,7 +198,7 @@ bigid_task_definition = TaskDefinition(
 			Memory="192",
             Essential=True,
             Image=Join("", [
-                Ref(repo_id),
+                repo_id,
                 "/bigid-ui",
             ]),
             PortMappings=[PortMapping(

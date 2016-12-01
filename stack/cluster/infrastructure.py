@@ -47,16 +47,12 @@ container_instance_type = Ref(template.add_parameter(Parameter(
     AllowedValues=["t2.micro", "t2.small", "t2.medium"]
 )))
 
-repo_id = template.add_parameter(Parameter(
-    "RepositoryID",
-    Description="Repository Address",
-    Type="String",
-))
+repo_id = "424632819416.dkr.ecr.us-west-2.amazonaws.com"
 
 secret_key = template.add_parameter(Parameter(
-    "MainClusterSecretKey",
-    Description="Application secret key",
-    Type="String"
+    "KeyPair",
+    Description="Key Pair",
+    Type="AWS::EC2::KeyPair::KeyName"
 ))
 
 template.add_mapping("ECSRegionMap", {
@@ -67,37 +63,19 @@ template.add_mapping("ECSRegionMap", {
     "us-west-1": {"AMI": "ami-9fadf8ff"},
 })
 
-load_balancer_security_group = SecurityGroup(
-    "LoadBalancerSecurityGroup",
+instance_security_group = SecurityGroup(
+    'InstanceSecurityGroup',
     template=template,
-    GroupDescription="Web load balancer security group.",
+    GroupDescription="Instance security group.",
     VpcId=Ref(vpc_id),
     SecurityGroupIngress=[
         SecurityGroupRule(
-            IpProtocol="tcp",
-            FromPort="80",
-            ToPort="80",
+            IpProtocol='-1',
+            FromPort='-1',
+            ToPort='-1',
             CidrIp='0.0.0.0/0',
-        ),
-		SecurityGroupRule(
-            IpProtocol="tcp",
-            FromPort="3000",
-            ToPort="3000",
-            CidrIp='0.0.0.0/0',
-        ),
-		SecurityGroupRule(
-            IpProtocol="tcp",
-            FromPort="3001",
-            ToPort="3001",
-            CidrIp='0.0.0.0/0',
-        ),
-		SecurityGroupRule(
-            IpProtocol="tcp",
-            FromPort="3002",
-            ToPort="3002",
-            CidrIp='0.0.0.0/0',
-        ),
-    ],
+        )
+    ]
 )
 
 load_balancer = elb.LoadBalancer(
@@ -106,7 +84,7 @@ load_balancer = elb.LoadBalancer(
     Subnets=[
         Ref(public_subnet),
     ],
-    SecurityGroups=[Ref(default_security_group), Ref(load_balancer_security_group)],
+    SecurityGroups=[Ref(default_security_group), Ref(instance_security_group)],
     Listeners=[
 		elb.Listener(
         LoadBalancerPort=80,
@@ -291,7 +269,7 @@ container_instance_configuration = LaunchConfiguration(
             )
         ))
     ),
-    SecurityGroups=[Ref(default_security_group)],
+    SecurityGroups=[Ref(default_security_group), Ref(instance_security_group)],
 	AssociatePublicIpAddress=True,
     InstanceType=container_instance_type,
     ImageId=FindInMap("ECSRegionMap", Ref(AWS_REGION), "AMI"),
