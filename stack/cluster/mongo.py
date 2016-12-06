@@ -17,7 +17,6 @@ from stack.template import template
 
 from stack.vpc import (
     vpc_id,
-    default_security_group,
     public_subnet,
 	instance_type,
 	secret_key
@@ -46,7 +45,7 @@ mongo_instance = Instance(
 			AssociatePublicIpAddress=True,
 			SubnetId=Ref(public_subnet),
 			DeviceIndex="0",
-			GroupSet=[Ref(default_security_group), Ref(instance_security_group)],
+			GroupSet=[Ref(instance_security_group)],
 	)],
     ImageId=FindInMap("InstanceRegionMap", Ref(AWS_REGION), "AMI"),
 #    SecurityGroupIds=[Ref(default_security_group)],

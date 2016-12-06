@@ -36,7 +36,6 @@ from stack.template import template
 from stack.vpc import (
     vpc_id,
 	public_subnet,
-    default_security_group,
 	instance_type,
 	secret_key
 )
@@ -74,7 +73,7 @@ load_balancer = elb.LoadBalancer(
     Subnets=[
         Ref(public_subnet),
     ],
-    SecurityGroups=[Ref(default_security_group), Ref(instance_security_group)],
+    SecurityGroups=[Ref(instance_security_group)],
     Listeners=[
 		elb.Listener(
         LoadBalancerPort=80,
@@ -120,7 +119,7 @@ template.add_output(Output(
 # ECS cluster
 main_cluster = Cluster(
     "MainCluster",
-    ClusterName="MainCluster",
+    ClusterName=Join("", ["MainCluster-", Ref(AWS_STACK_NAME)]),
     template=template,
 )
 
@@ -259,7 +258,7 @@ container_instance_configuration = LaunchConfiguration(
             )
         ))
     ),
-    SecurityGroups=[Ref(default_security_group), Ref(instance_security_group)],
+    SecurityGroups=[Ref(instance_security_group)],
 	AssociatePublicIpAddress=True,
     InstanceType=instance_type,
     ImageId=FindInMap("ECSRegionMap", Ref(AWS_REGION), "AMI"),

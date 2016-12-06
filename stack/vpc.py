@@ -17,18 +17,12 @@ public_subnet = template.add_parameter(Parameter(
 	Type="AWS::EC2::Subnet::Id",
 ))
 
-default_security_group = template.add_parameter(Parameter(
-	"DefaultSecurityGroup",
-	Description="Select Your VPC Default Security Group ID",
-	Type="AWS::EC2::SecurityGroup::Id",
-))
-
 instance_type = Ref(template.add_parameter(Parameter(
     "InstanceType",
     Description="Select Instance Type",
     Type="String",
     Default="t2.large",
-    AllowedValues=["t2.medium", "t2.large", "t2.xlarge"]
+    AllowedValues=["t2.large", "t2.xlarge", "m4.large", "m4.xlarge"]
 )))
 
 secret_key = template.add_parameter(Parameter(
@@ -37,25 +31,40 @@ secret_key = template.add_parameter(Parameter(
     Type="AWS::EC2::KeyPair::KeyName"
 ))
 
+aws_access_key = template.add_parameter(Parameter(
+    "AWSACCESSKEY",
+    Description="Enter Your AWS Access Key ID",
+    Type="String",
+	NoEcho=True
+))
+
+aws_secret_key = template.add_parameter(Parameter(
+    "AWSSECRETKEY",
+    Description="Enter Your AWS Secret Key",
+    Type="String",
+	NoEcho=True
+))
+
 
 template.add_metadata({
     'AWS::CloudFormation::Interface': {
         'ParameterGroups': [
             {
                 'Label': {'default': 'Network Configuration'},
-                'Parameters': ["VPCID", "PublicSubnet", "DefaultSecurityGroup"]
+                'Parameters': ["VPCID", "PublicSubnet"]
             },
 			{
                 'Label': {'default': 'App Configuration'},
-                'Parameters': ["InstanceType", "KeyPair"]
+                'Parameters': ["InstanceType", "KeyPair", "AWSACCESSKEY", "AWSSECRETKEY"]
             },
         ],
         'ParameterLabels': {
             'VPCID': {"default" : "VPC ID"},
 			'PublicSubnet': {"default" : "Public Subnet ID"},
-			'DefaultSecurityGroup': {"default" : "VPC Default Security Group ID"},
 			'InstanceType': {"default" : "Instance Type"},
 			'KeyPair': {"default" : "Key Pair"},
+			'AWSACCESSKEY': {"default" : "AWS_ACCESS_KEY"},
+			'AWSSECRETKEY': {"default" : "AWS_SECRET_KEY"},
         }
     }
 })

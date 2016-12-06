@@ -22,7 +22,9 @@ from stack.cluster.infrastructure import (
 
 from stack.vpc import (
 	instance_type,
-	secret_key
+	secret_key,
+	aws_access_key,
+	aws_secret_key
 )
 
 from troposphere.ecs import (
@@ -49,7 +51,7 @@ bigid_task_definition = TaskDefinition(
     ContainerDefinitions=[
         ContainerDefinition(
             Name="bigid-web",
-			Memory="200",
+			Memory="1024",
             Essential=True,
             Image=Join("", [
                 repo_id,
@@ -77,11 +79,19 @@ bigid_task_definition = TaskDefinition(
                     Name="WEB_URL_EXT",
                     Value=Join("", ["http://", GetAtt(load_balancer, "DNSName"), ":3000"]),
                 ),
+				Environment(
+                    Name="AWS_ACCESS_KEY",
+                    Value=Ref(aws_access_key),
+                ),
+				Environment(
+                    Name="AWS_SECRET_KEY",
+                    Value=Ref(aws_secret_key),
+                ),
 			],
         ),
 		ContainerDefinition(
             Name="bigid-orch",
-			Memory="200",
+			Memory="1024",
             Essential=True,
             Image=Join("", [
                 repo_id,
@@ -118,11 +128,19 @@ bigid_task_definition = TaskDefinition(
                     Name="SAVE_SCANNED_IDENTITIES_AS_PII_FINDINGS",
                     Value="False",
                 ),
+				Environment(
+                    Name="AWS_ACCESS_KEY",
+                    Value=Ref(aws_access_key),
+                ),
+				Environment(
+                    Name="AWS_SECRET_KEY",
+                    Value=Ref(aws_secret_key),
+                ),
 			],
         ),
 		ContainerDefinition(
             Name="bigid-corr",
-			Memory="200",
+			Memory="1024",
             Essential=True,
             Image=Join("", [
                 repo_id,
@@ -155,7 +173,7 @@ bigid_task_definition = TaskDefinition(
         ),
 		ContainerDefinition(
             Name="bigid-scanner",
-			Memory="200",
+			Memory="1024",
             Essential=True,
 			Privileged=True,
             Image=Join("", [
@@ -199,7 +217,7 @@ bigid_task_definition = TaskDefinition(
         ),
 		ContainerDefinition(
             Name="bigid-ui",
-			Memory="192",
+			Memory="1024",
             Essential=True,
             Image=Join("", [
                 repo_id,
