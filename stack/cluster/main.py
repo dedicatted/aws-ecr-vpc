@@ -55,7 +55,7 @@ bigid_task_definition = TaskDefinition(
             Essential=True,
             Image=Join("", [
                 repo_id,
-                "/bigid-web",
+                "/bigid/bigid-web",
             ]),
             PortMappings=[PortMapping(
                 ContainerPort="3000",
@@ -95,7 +95,7 @@ bigid_task_definition = TaskDefinition(
             Essential=True,
             Image=Join("", [
                 repo_id,
-                "/bigid-orch",
+                "/bigid/bigid-orch",
             ]),
             PortMappings=[PortMapping(
                 ContainerPort="3001",
@@ -144,7 +144,7 @@ bigid_task_definition = TaskDefinition(
             Essential=True,
             Image=Join("", [
                 repo_id,
-                "/bigid-corr",
+                "/bigid/bigid-corr",
             ]),
             PortMappings=[PortMapping(
                 ContainerPort="3002",
@@ -178,7 +178,7 @@ bigid_task_definition = TaskDefinition(
 			Privileged=True,
             Image=Join("", [
                 repo_id,
-                "/bigid-scanner",
+                "/bigid/bigid-scanner",
             ]),
 			ExtraHosts=[HostEntry(
 				Hostname="bigid-mongo",
@@ -213,6 +213,10 @@ bigid_task_definition = TaskDefinition(
                     Name="JAVA_OPTS",
                     Value="-Xmx1024m",
                 ),
+				Environment(
+                    Name="ORCHESTRATOR_URL_EXT",
+			        Value=Join("", ["http://", GetAtt(load_balancer, "DNSName"), ":3001"]),
+                )
 			],
         ),
 		ContainerDefinition(
@@ -221,7 +225,7 @@ bigid_task_definition = TaskDefinition(
             Essential=True,
             Image=Join("", [
                 repo_id,
-                "/bigid-ui",
+                "/bigid/bigid-ui",
             ]),
             PortMappings=[PortMapping(
                 ContainerPort="8080",

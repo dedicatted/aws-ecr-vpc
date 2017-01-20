@@ -38,7 +38,6 @@ mongo_instance_name = "MongoDB"
 mongo_instance = Instance(
     mongo_instance_name,
     template=template,
-    SourceDestCheck="false",
     KeyName=Ref(secret_key),
 	NetworkInterfaces=[
 		NetworkInterfaceProperty(
@@ -77,6 +76,8 @@ mongo_instance = Instance(
         '         --region ',
         Ref('AWS::Region'),
         '\n',
+		"docker restart mongo",
+		"echo docker-mongo-restarted >> /tmp/init.log\n"
     ])),
     CreationPolicy=CreationPolicy(
         ResourceSignal=ResourceSignal(

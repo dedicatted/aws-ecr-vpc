@@ -1,0 +1,987 @@
+{
+  "Mappings": {
+    "ECSRegionMap": {
+      "eu-central-1": {
+        "AMI": "ami-38dc1157"
+      },
+      "eu-west-1": {
+        "AMI": "ami-e3fbd290"
+      },
+      "us-east-1": {
+        "AMI": "ami-a58760b3"
+      },
+      "us-west-1": {
+        "AMI": "ami-74cb9b14"
+      },
+      "us-west-2": {
+        "AMI": "ami-5b6dde3b"
+      }
+    },
+    "InstanceRegionMap": {
+      "eu-central-1": {
+        "AMI": "ami-f9619996"
+      },
+      "eu-west-1": {
+        "AMI": "ami-9398d3e0"
+      },
+      "us-east-1": {
+        "AMI": "ami-b73b63a0"
+      },
+      "us-west-1": {
+        "AMI": "ami-23e8a343"
+      },
+      "us-west-2": {
+        "AMI": "ami-5ec1673e"
+      }
+    }
+  },
+  "Metadata": {
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+        {
+          "Label": {
+            "default": "Network Configuration"
+          },
+          "Parameters": [
+            "VPCID",
+            "PublicSubnet"
+          ]
+        },
+        {
+          "Label": {
+            "default": "App Configuration"
+          },
+          "Parameters": [
+            "InstanceType",
+            "KeyPair",
+            "AWSACCESSKEY",
+            "AWSSECRETKEY"
+          ]
+        }
+      ],
+      "ParameterLabels": {
+        "AWSACCESSKEY": {
+          "default": "AWS_ACCESS_KEY"
+        },
+        "AWSSECRETKEY": {
+          "default": "AWS_SECRET_KEY"
+        },
+        "InstanceType": {
+          "default": "Instance Type"
+        },
+        "KeyPair": {
+          "default": "Key Pair"
+        },
+        "PublicSubnet": {
+          "default": "Public Subnet ID"
+        },
+        "VPCID": {
+          "default": "VPC ID"
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "LoadBalancerDNSName": {
+      "Description": "Loadbalancer DNS",
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "http://",
+            {
+              "Fn::GetAtt": [
+                "LoadBalancer",
+                "DNSName"
+              ]
+            }
+          ]
+        ]
+      }
+    },
+    "Login": {
+      "Description": "BigId Login",
+      "Value": "bigid"
+    },
+    "Password": {
+      "Description": "BigId Password",
+      "Value": "bigid111"
+    }
+  },
+  "Parameters": {
+    "AWSACCESSKEY": {
+      "Description": "Enter Your AWS Access Key ID",
+      "NoEcho": true,
+      "Type": "String"
+    },
+    "AWSSECRETKEY": {
+      "Description": "Enter Your AWS Secret Key",
+      "NoEcho": true,
+      "Type": "String"
+    },
+    "InstanceType": {
+      "AllowedValues": [
+        "t2.large",
+        "t2.xlarge",
+        "m4.large",
+        "m4.xlarge"
+      ],
+      "Default": "t2.large",
+      "Description": "Select Instance Type",
+      "Type": "String"
+    },
+    "KeyPair": {
+      "Description": "Select Key Pair",
+      "Type": "AWS::EC2::KeyPair::KeyName"
+    },
+    "PublicSubnet": {
+      "Description": "Select Your Public Subnet ID",
+      "Type": "AWS::EC2::Subnet::Id"
+    },
+    "VPCID": {
+      "Description": "Select Your VPC ID",
+      "Type": "AWS::EC2::VPC::Id"
+    }
+  },
+  "Resources": {
+    "AppService": {
+      "DependsOn": [
+        "ECSAutoScalingGroup"
+      ],
+      "Properties": {
+        "Cluster": {
+          "Ref": "MainCluster"
+        },
+        "DesiredCount": 1,
+        "LoadBalancers": [
+          {
+            "ContainerName": "bigid-ui",
+            "ContainerPort": 8080,
+            "LoadBalancerName": {
+              "Ref": "LoadBalancer"
+            }
+          }
+        ],
+        "Role": {
+          "Ref": "AppServiceRole"
+        },
+        "TaskDefinition": {
+          "Ref": "BigIdTask"
+        }
+      },
+      "Type": "AWS::ECS::Service"
+    },
+    "AppServiceRole": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "sts:AssumeRole"
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "ecs.amazonaws.com"
+                ]
+              }
+            }
+          ]
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyDocument": {
+              "Statement": [
+                {
+                  "Action": [
+                    "elasticloadbalancing:Describe*",
+                    "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
+                    "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
+                    "ec2:Describe*",
+                    "ec2:AuthorizeSecurityGroupIngress"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": "*"
+                }
+              ]
+            },
+            "PolicyName": "WebServicePolicy"
+          }
+        ]
+      },
+      "Type": "AWS::IAM::Role"
+    },
+    "BigIdTask": {
+      "Properties": {
+        "ContainerDefinitions": [
+          {
+            "Environment": [
+              {
+                "Name": "BIGID_MONGO_USER",
+                "Value": "bigid"
+              },
+              {
+                "Name": "BIGID_MONGO_PWD",
+                "Value": "bigid111"
+              },
+              {
+                "Name": "WEB_URL_EXT",
+                "Value": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "http://",
+                      {
+                        "Fn::GetAtt": [
+                          "LoadBalancer",
+                          "DNSName"
+                        ]
+                      },
+                      ":3000"
+                    ]
+                  ]
+                }
+              },
+              {
+                "Name": "AWS_ACCESS_KEY",
+                "Value": {
+                  "Ref": "AWSACCESSKEY"
+                }
+              },
+              {
+                "Name": "AWS_SECRET_KEY",
+                "Value": {
+                  "Ref": "AWSSECRETKEY"
+                }
+              }
+            ],
+            "Essential": "true",
+            "ExtraHosts": [
+              {
+                "Hostname": "bigid-mongo",
+                "IpAddress": {
+                  "Fn::GetAtt": [
+                    "MongoDB",
+                    "PrivateIp"
+                  ]
+                }
+              }
+            ],
+            "Image": {
+              "Fn::Join": [
+                "",
+                [
+                  "238481145981.dkr.ecr.us-west-2.amazonaws.com",
+                  "/bigid/bigid-web"
+                ]
+              ]
+            },
+            "Links": [
+              "bigid-orch"
+            ],
+            "Memory": "1024",
+            "Name": "bigid-web",
+            "PortMappings": [
+              {
+                "ContainerPort": "3000",
+                "HostPort": "3000"
+              }
+            ]
+          },
+          {
+            "Environment": [
+              {
+                "Name": "BIGID_MONGO_USER",
+                "Value": "bigid"
+              },
+              {
+                "Name": "BIGID_MONGO_PWD",
+                "Value": "bigid111"
+              },
+              {
+                "Name": "ORCHESTRATOR_URL_EXT",
+                "Value": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "http://",
+                      {
+                        "Fn::GetAtt": [
+                          "LoadBalancer",
+                          "DNSName"
+                        ]
+                      },
+                      ":3001"
+                    ]
+                  ]
+                }
+              },
+              {
+                "Name": "BIGID_MONGO_HOST_EXT",
+                "Value": {
+                  "Fn::GetAtt": [
+                    "MongoDB",
+                    "PrivateIp"
+                  ]
+                }
+              },
+              {
+                "Name": "SAVE_SCANNED_IDENTITIES_AS_PII_FINDINGS",
+                "Value": "False"
+              },
+              {
+                "Name": "AWS_ACCESS_KEY",
+                "Value": {
+                  "Ref": "AWSACCESSKEY"
+                }
+              },
+              {
+                "Name": "AWS_SECRET_KEY",
+                "Value": {
+                  "Ref": "AWSSECRETKEY"
+                }
+              }
+            ],
+            "Essential": "true",
+            "ExtraHosts": [
+              {
+                "Hostname": "bigid-mongo",
+                "IpAddress": {
+                  "Fn::GetAtt": [
+                    "MongoDB",
+                    "PrivateIp"
+                  ]
+                }
+              }
+            ],
+            "Hostname": "bigid-orch",
+            "Image": {
+              "Fn::Join": [
+                "",
+                [
+                  "238481145981.dkr.ecr.us-west-2.amazonaws.com",
+                  "/bigid/bigid-orch"
+                ]
+              ]
+            },
+            "Links": [
+              "bigid-scanner"
+            ],
+            "Memory": "1024",
+            "Name": "bigid-orch",
+            "PortMappings": [
+              {
+                "ContainerPort": "3001",
+                "HostPort": "3001"
+              }
+            ]
+          },
+          {
+            "Environment": [
+              {
+                "Name": "BIGID_MONGO_USER",
+                "Value": "bigid"
+              },
+              {
+                "Name": "BIGID_MONGO_PWD",
+                "Value": "bigid111"
+              },
+              {
+                "Name": "CORR_URL_EXT",
+                "Value": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "http://",
+                      {
+                        "Fn::GetAtt": [
+                          "LoadBalancer",
+                          "DNSName"
+                        ]
+                      },
+                      ":3002"
+                    ]
+                  ]
+                }
+              }
+            ],
+            "Essential": "true",
+            "ExtraHosts": [
+              {
+                "Hostname": "bigid-mongo",
+                "IpAddress": {
+                  "Fn::GetAtt": [
+                    "MongoDB",
+                    "PrivateIp"
+                  ]
+                }
+              }
+            ],
+            "Hostname": "bigid-corr",
+            "Image": {
+              "Fn::Join": [
+                "",
+                [
+                  "238481145981.dkr.ecr.us-west-2.amazonaws.com",
+                  "/bigid/bigid-corr"
+                ]
+              ]
+            },
+            "Links": [
+              "bigid-orch"
+            ],
+            "Memory": "1024",
+            "Name": "bigid-corr",
+            "PortMappings": [
+              {
+                "ContainerPort": "3002",
+                "HostPort": "3002"
+              }
+            ]
+          },
+          {
+            "Environment": [
+              {
+                "Name": "JAVA_OPTS",
+                "Value": "-Xmx1024m"
+              },
+              {
+                "Name": "ORCHESTRATOR_URL_EXT",
+                "Value": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "http://",
+                      {
+                        "Fn::GetAtt": [
+                          "LoadBalancer",
+                          "DNSName"
+                        ]
+                      },
+                      ":3001"
+                    ]
+                  ]
+                }
+              }
+            ],
+            "Essential": "true",
+            "ExtraHosts": [
+              {
+                "Hostname": "bigid-mongo",
+                "IpAddress": {
+                  "Fn::GetAtt": [
+                    "MongoDB",
+                    "PrivateIp"
+                  ]
+                }
+              }
+            ],
+            "Image": {
+              "Fn::Join": [
+                "",
+                [
+                  "238481145981.dkr.ecr.us-west-2.amazonaws.com",
+                  "/bigid/bigid-scanner"
+                ]
+              ]
+            },
+            "Memory": "1024",
+            "Name": "bigid-scanner",
+            "PortMappings": [
+              {
+                "ContainerPort": "9999",
+                "HostPort": "9999"
+              },
+              {
+                "ContainerPort": "2049",
+                "HostPort": "2049"
+              },
+              {
+                "ContainerPort": "2049",
+                "HostPort": "2049",
+                "Protocol": "udp"
+              },
+              {
+                "ContainerPort": "111",
+                "HostPort": "111"
+              },
+              {
+                "ContainerPort": "111",
+                "HostPort": "111",
+                "Protocol": "udp"
+              }
+            ],
+            "Privileged": "true"
+          },
+          {
+            "Essential": "true",
+            "Image": {
+              "Fn::Join": [
+                "",
+                [
+                  "238481145981.dkr.ecr.us-west-2.amazonaws.com",
+                  "/bigid/bigid-ui"
+                ]
+              ]
+            },
+            "Memory": "1024",
+            "Name": "bigid-ui",
+            "PortMappings": [
+              {
+                "ContainerPort": "8080",
+                "HostPort": "8080"
+              }
+            ]
+          }
+        ]
+      },
+      "Type": "AWS::ECS::TaskDefinition"
+    },
+    "ContainerInstanceProfile": {
+      "Properties": {
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "ContainerInstanceRole"
+          }
+        ]
+      },
+      "Type": "AWS::IAM::InstanceProfile"
+    },
+    "ContainerInstanceRole": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "sts:AssumeRole"
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "ec2.amazonaws.com"
+                ]
+              }
+            }
+          ]
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyDocument": {
+              "Statement": [
+                {
+                  "Action": [
+                    "ecs:*",
+                    "elasticloadbalancing:*"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": "*"
+                }
+              ]
+            },
+            "PolicyName": "ECSManagementPolicy"
+          },
+		  {
+            "PolicyDocument": {
+              "Statement": [
+                {
+                  "Action": [
+                    "ecr:GetAuthorizationToken",
+                    "ecr:GetDownloadUrlForLayer",
+                    "ecr:BatchGetImage",
+                    "ecr:BatchCheckLayerAvailability"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": "*"
+                }
+              ]
+            },
+            "PolicyName": "ECRManagementPolicy"
+          },
+          {
+            "PolicyDocument": {
+              "Statement": [
+                {
+                  "Action": [
+                    "logs:Create*",
+                    "logs:PutLogEvents"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": "arn:aws:logs:*:*:*"
+                }
+              ]
+            },
+            "PolicyName": "LoggingPolicy"
+          }
+        ]
+      },
+      "Type": "AWS::IAM::Role"
+    },
+    "ECSAutoScalingGroup": {
+      "DependsOn": [
+        "LoadBalancer"
+      ],
+      "Properties": {
+        "DesiredCapacity": 1,
+        "HealthCheckGracePeriod": 300,
+        "HealthCheckType": "EC2",
+        "LaunchConfigurationName": {
+          "Ref": "MainContainerLaunchConfiguration"
+        },
+        "MaxSize": 1,
+        "MinSize": 1,
+        "Tags": [
+          {
+            "Key": "Name",
+            "PropagateAtLaunch": true,
+            "Value": "ecs-auto-scaling-group-instances"
+          }
+        ],
+        "VPCZoneIdentifier": [
+          {
+            "Ref": "PublicSubnet"
+          }
+        ]
+      },
+      "Type": "AWS::AutoScaling::AutoScalingGroup"
+    },
+    "InstanceSecurityGroup": {
+      "Properties": {
+        "GroupDescription": "Instance security group.",
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "80",
+            "ToPort": "80",
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "3000",
+            "ToPort": "3000",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ],
+        "VpcId": {
+          "Ref": "VPCID"
+        }
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
+    "SelfAccessSecurityGroupIngress": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId" : {
+          "Ref" : "InstanceSecurityGroup"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": "0",
+        "ToPort": "65535",
+        "SourceSecurityGroupId": {
+          "Ref": "InstanceSecurityGroup"
+        }
+      }
+    },
+    "LoadBalancer": {
+      "Properties": {
+        "Scheme" : "internal",
+        "HealthCheck": {
+          "HealthyThreshold": "2",
+          "Interval": "100",
+          "Target": {
+            "Fn::Join": [
+              "",
+              [
+                "HTTP:",
+                8080,
+                "/"
+              ]
+            ]
+          },
+          "Timeout": "10",
+          "UnhealthyThreshold": "2"
+        },
+        "Listeners": [
+          {
+            "InstancePort": 8080,
+            "InstanceProtocol": "HTTP",
+            "LoadBalancerPort": 80,
+            "Protocol": "HTTP"
+          },
+          {
+            "InstancePort": 3000,
+            "InstanceProtocol": "tcp",
+            "LoadBalancerPort": 3000,
+            "Protocol": "tcp"
+          },
+          {
+            "InstancePort": 3001,
+            "InstanceProtocol": "tcp",
+            "LoadBalancerPort": 3001,
+            "Protocol": "tcp"
+          },
+          {
+            "InstancePort": 3002,
+            "InstanceProtocol": "tcp",
+            "LoadBalancerPort": 3002,
+            "Protocol": "tcp"
+          }
+        ],
+        "SecurityGroups": [
+          {
+            "Ref": "InstanceSecurityGroup"
+          }
+        ],
+        "Subnets": [
+          {
+            "Ref": "PublicSubnet"
+          }
+        ]
+      },
+      "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
+    },
+    "MainCluster": {
+      "Properties": {
+        "ClusterName": {
+          "Fn::Join": [
+            "",
+            [
+              "MainCluster-",
+              {
+                "Ref": "AWS::StackName"
+              }
+            ]
+          ]
+        }
+      },
+      "Type": "AWS::ECS::Cluster"
+    },
+    "MainContainerLaunchConfiguration": {
+      "Metadata": {
+        "AWS::CloudFormation::Init": {
+          "config": {
+            "commands": {
+              "register_cluster": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "#!/bin/bash\n",
+                      "echo ECS_CLUSTER=",
+                      {
+                        "Ref": "MainCluster"
+                      },
+                      " >> /etc/ecs/ecs.config\n",
+                      "echo 'ECS_AVAILABLE_LOGGING_DRIVERS=",
+                      "[\"json-file\",\"awslogs\"]'",
+                      " >> /etc/ecs/ecs.config\n"
+                    ]
+                  ]
+                }
+              }
+            },
+            "files": {
+              "/etc/cfn/cfn-hup.conf": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "[main]\n",
+                      "template=",
+                      {
+                        "Ref": "AWS::StackId"
+                      },
+                      "\n",
+                      "region=",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      "\n"
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000400",
+                "owner": "root"
+              },
+              "/etc/cfn/hooks.d/cfn-auto-reload.conf": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "[cfn-auto-reloader-hook]\n",
+                      "triggers=post.update\n",
+                      "path=Resources.MainContainerLaunchConfiguration.",
+                      "Metadata.AWS::CloudFormation::Init\n",
+                      "action=/opt/aws/bin/cfn-init -v ",
+                      "         --stack",
+                      {
+                        "Ref": "AWS::StackName"
+                      },
+                      "         --resource MainContainerLaunchConfiguration",
+                      "         --region ",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      "\n",
+                      "runas=root\n"
+                    ]
+                  ]
+                }
+              }
+            },
+            "services": {
+              "sysvinit": {
+                "cfn-hup": {
+                  "enabled": "true",
+                  "ensureRunning": "true",
+                  "files": [
+                    "/etc/cfn/cfn-hup.conf",
+                    "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "Properties": {
+        "AssociatePublicIpAddress": "true",
+        "IamInstanceProfile": {
+          "Ref": "ContainerInstanceProfile"
+        },
+        "ImageId": {
+          "Fn::FindInMap": [
+            "ECSRegionMap",
+            {
+              "Ref": "AWS::Region"
+            },
+            "AMI"
+          ]
+        },
+        "InstanceType": {
+          "Ref": "InstanceType"
+        },
+        "KeyName": {
+          "Ref": "KeyPair"
+        },
+        "SecurityGroups": [
+          {
+            "Ref": "InstanceSecurityGroup"
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash -xe\n",
+                "yum install -y aws-cfn-bootstrap\n",
+                "/opt/aws/bin/cfn-init -v ",
+                "         --stack ",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                "         --resource MainContainerLaunchConfiguration ",
+                "         --region ",
+                {
+                  "Ref": "AWS::Region"
+                },
+                "\n"
+              ]
+            ]
+          }
+        }
+      },
+      "Type": "AWS::AutoScaling::LaunchConfiguration"
+    },
+    "MongoDB": {
+      "CreationPolicy": {
+        "ResourceSignal": {
+          "Timeout": "PT15M"
+        }
+      },
+      "Properties": {
+        "ImageId": {
+          "Fn::FindInMap": [
+            "InstanceRegionMap",
+            {
+              "Ref": "AWS::Region"
+            },
+            "AMI"
+          ]
+        },
+        "InstanceType": {
+          "Ref": "InstanceType"
+        },
+        "KeyName": {
+          "Ref": "KeyPair"
+        },
+        "NetworkInterfaces": [
+          {
+            "AssociatePublicIpAddress": "true",
+            "DeviceIndex": "0",
+            "GroupSet": [
+              {
+                "Ref": "InstanceSecurityGroup"
+              }
+            ],
+            "SubnetId": {
+              "Ref": "PublicSubnet"
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "mongo_db_instance"
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash -xe\n",
+                "sleep 30s\n",
+                "touch /tmp/init.log\n",
+                "yum update -y\n",
+                "echo update-done >> /tmp/init.log\n",
+                "yum install -y docker \n",
+                "echo docker-install-done >> /tmp/init.log\n",
+                "usermod -a -G docker ec2-user \n",
+                "service docker start\n",
+                "echo docker-start-done >> /tmp/init.log\n",
+                "mkdir -p /data\n",
+                "docker run --name mongo -v /data:/data/db -p 27017:27017 -d mongo --auth\n",
+                "echo docker-mongo-started >> /tmp/init.log\n",
+                "sleep 5s \n",
+                "docker exec mongo mongo admin --eval \"db.createUser({ user: '",
+                "bigid",
+                "', pwd: '",
+                "bigid111",
+                "', roles: [ { role: 'userAdminAnyDatabase', db: 'admin' }, { role: 'dbAdminAnyDatabase', db: 'admin' }, { role: 'readWriteAnyDatabase', db: 'admin' } ] });\"\n",
+                "/opt/aws/bin/cfn-signal -e $? ",
+                "         --stack ",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                "         --resource MongoDB ",
+                "         --region ",
+                {
+                  "Ref": "AWS::Region"
+                },
+                "\n",
+				"docker restart mongo",
+				"echo docker-mongo-restarted >> /tmp/init.log\n"
+              ]
+            ]
+          }
+        }
+      },
+      "Type": "AWS::EC2::Instance"
+    }
+  }
+}

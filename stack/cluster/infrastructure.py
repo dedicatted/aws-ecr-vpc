@@ -42,14 +42,14 @@ from stack.vpc import (
 
 
 
-repo_id = "424632819416.dkr.ecr.us-west-2.amazonaws.com"
+repo_id = "238481145981.dkr.ecr.us-west-2.amazonaws.com"
 
 template.add_mapping("ECSRegionMap", {
-    "eu-central-1": {"AMI": "ami-54f5303b"},
-    "eu-west-1": {"AMI": "ami-4e6ffe3d"},
-    "us-east-1": {"AMI": "ami-8f7687e2"},
-    "us-west-2": {"AMI": "ami-84b44de4"},
-    "us-west-1": {"AMI": "ami-9fadf8ff"},
+    "eu-central-1": {"AMI": "ami-38dc1157"},
+    "eu-west-1": {"AMI": "ami-e3fbd290"},
+    "us-east-1": {"AMI": "ami-a58760b3"},
+    "us-west-2": {"AMI": "ami-5b6dde3b"},
+    "us-west-1": {"AMI": "ami-74cb9b14"},
 })
 
 instance_security_group = SecurityGroup(
@@ -107,7 +107,7 @@ load_balancer = elb.LoadBalancer(
         Interval="100",
         Timeout="10",
     ),
-#    CrossZone=True,
+	Scheme="internal"
 )
 
 template.add_output(Output(
